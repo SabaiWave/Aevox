@@ -25,10 +25,10 @@ handoffs/*
 !handoffs/.gitkeep
 
 # ─── Project-only (uncomment in real projects) ───────────────────────────────
-# CLAUDE.md
-# DESIGN.md
-# PHASES.md
-# PRODUCT.md
-# docs/*
-# !docs/.gitkeep
-# .claude/
+CLAUDE.md
+DESIGN.md
+PHASES.md
+PRODUCT.md
+docs/*
+!docs/.gitkeep
+.claude/

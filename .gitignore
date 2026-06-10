@@ -24,6 +24,9 @@ sessions/*
 handoffs/*
 !handoffs/.gitkeep
 
+# Brief (project-specific, not committed)
+BRIEF.md
+
 # ─── Project-only (uncomment in real projects) ───────────────────────────────
 CLAUDE.md
 DESIGN.md

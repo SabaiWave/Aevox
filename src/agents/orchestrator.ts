@@ -11,6 +11,7 @@ import type {
   PipelineRunStatus,
   PublishOutput,
   SourcePackage,
+  SSEEvent,
   VoiceOutput,
 } from '@/types'
 
@@ -69,6 +70,7 @@ export async function runPipeline(
   topic: string,
   config: ChannelConfig,
   oauthToken: string,
+  onEvent?: (event: SSEEvent) => void,
 ): Promise<PipelineResult> {
   const startMs = Date.now()
 
@@ -84,10 +86,12 @@ export async function runPipeline(
     const publish = new PublishAgent()
 
     // ── Stage 1: Research ──────────────────────────────────────────────────
+    onEvent?.({ type: 'stage_start', stage: 'research', state: 'running', timestamp: new Date().toISOString() })
     researchResult = await research.run(topic, config)
 
     if (researchResult.status === 'failed' || !researchResult.data) {
       // Research failed — skip remaining stages
+      onEvent?.({ type: 'stage_failed', stage: 'research', state: 'failed', message: researchResult.error, timestamp: new Date().toISOString() })
       const degradedContext = buildDegradedContext(researchResult, null, null, null)
       const totalDurationMs = Date.now() - startMs
 
@@ -103,6 +107,7 @@ export async function runPipeline(
         degradedContext,
       })
 
+      onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
       return {
         runId,
         status: 'failed',
@@ -115,11 +120,15 @@ export async function runPipeline(
       }
     }
 
+    onEvent?.({ type: 'stage_complete', stage: 'research', state: 'complete', data: researchResult, timestamp: new Date().toISOString() })
+
     // ── Stage 2: Script ────────────────────────────────────────────────────
+    onEvent?.({ type: 'stage_start', stage: 'script', state: 'running', timestamp: new Date().toISOString() })
     scriptResult = await script.run(topic, researchResult.data, config)
 
     if (scriptResult.status === 'failed' || !scriptResult.data) {
       // Script failed — skip remaining stages
+      onEvent?.({ type: 'stage_failed', stage: 'script', state: 'failed', message: scriptResult.error, timestamp: new Date().toISOString() })
       const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null)
       const totalDurationMs = Date.now() - startMs
 
@@ -135,6 +144,7 @@ export async function runPipeline(
         degradedContext,
       })
 
+      onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
       return {
         runId,
         status: 'failed',
@@ -147,16 +157,26 @@ export async function runPipeline(
       }
     }
 
+    onEvent?.({ type: 'stage_complete', stage: 'script', state: 'complete', data: scriptResult, timestamp: new Date().toISOString() })
+
     // ── Stage 3: Voice ─────────────────────────────────────────────────────
+    onEvent?.({ type: 'stage_start', stage: 'voice', state: 'running', timestamp: new Date().toISOString() })
     voiceResult = await voice.run(scriptResult.data, config, runId)
 
     // Voice failure is non-fatal — continue to publish attempt
+    if (voiceResult.status === 'failed' || voiceResult.status === 'degraded') {
+      onEvent?.({ type: 'stage_failed', stage: 'voice', state: 'failed', message: voiceResult.error, timestamp: new Date().toISOString() })
+    } else {
+      onEvent?.({ type: 'stage_complete', stage: 'voice', state: 'complete', data: voiceResult, timestamp: new Date().toISOString() })
+    }
+
     const audioUrl = voiceResult.status === 'success' && voiceResult.data
       ? voiceResult.data.audioUrl
       : ''
 
     // ── Stage 4: Publish ───────────────────────────────────────────────────
     // Only attempt publish if we have a real audio URL
+    onEvent?.({ type: 'stage_start', stage: 'publish', state: 'running', timestamp: new Date().toISOString() })
     if (audioUrl) {
       publishResult = await publish.run(audioUrl, topic, config, oauthToken)
     } else {
@@ -165,6 +185,13 @@ export async function runPipeline(
         data: null,
         error: 'No audio URL available for publish',
       }
+    }
+
+    // ── Publish complete/failed event ──────────────────────────────────────
+    if (publishResult.status === 'failed' || publishResult.status === 'degraded') {
+      onEvent?.({ type: 'stage_failed', stage: 'publish', state: 'failed', message: publishResult.error, timestamp: new Date().toISOString() })
+    } else {
+      onEvent?.({ type: 'stage_complete', stage: 'publish', state: 'complete', data: publishResult, timestamp: new Date().toISOString() })
     }
 
     // ── Determine final status ─────────────────────────────────────────────
@@ -197,6 +224,7 @@ export async function runPipeline(
       degradedContext,
     })
 
+    onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
     return {
       runId,
       status: finalStatus,
@@ -210,6 +238,7 @@ export async function runPipeline(
   } catch (err) {
     // Top-level safety net — agents should never throw, but protect regardless
     console.error('[orchestrator] Unexpected top-level error:', err instanceof Error ? err.message : err)
+    onEvent?.({ type: 'pipeline_error', message: err instanceof Error ? err.message : 'Unknown error', timestamp: new Date().toISOString() })
 
     const degradedContext = buildDegradedContext(
       researchResult,

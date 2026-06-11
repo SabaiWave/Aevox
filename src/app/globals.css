@@ -88,3 +88,17 @@ body {
   background-color: var(--color-surface-1);
   border-left-color: var(--color-primary);
 }
+
+@keyframes aevox-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.stage-running-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-status-running);
+  animation: aevox-pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}

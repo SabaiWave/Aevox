@@ -125,9 +125,10 @@ describe('VoiceAgent', () => {
 
     it('returns status failed when voiceId is invalid', async () => {
       process.env.ELEVENLABS_API_KEY = 'test-key'
-      // darkloreConfig has 'placeholder-voice-id' which contains hyphens — fails validation
+      // voiceId with hyphens fails the /^[a-zA-Z0-9]{10,40}$/ regex — explicit override, not darkloreConfig
+      const invalidVoiceConfig: ChannelConfig = { ...validVoiceConfig, voiceId: 'invalid-voice-id' }
       const agent = new VoiceAgent()
-      const result = await agent.run(SCRIPT, darkloreConfig, RUN_ID)
+      const result = await agent.run(SCRIPT, invalidVoiceConfig, RUN_ID)
 
       expect(result.status).toBe('failed')
       expect(result.error).toBe('Invalid voice ID')

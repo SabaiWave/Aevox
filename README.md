@@ -27,7 +27,7 @@ Every step is driven by a **channel config** — tone, source types, script stru
 - **Publish:** YouTube Data API v3 (per-user OAuth 2.0)
 - **Infra:** Vercel
 - **Observability:** Sentry + BetterStack
-- **Testing:** Vitest
+- **Testing:** Jest
 
 ---
 
@@ -43,10 +43,10 @@ Every step is driven by a **channel config** — tone, source types, script stru
 
 ## Pricing
 
-| Tier | Price | Configs | Videos/mo |
-|------|-------|---------|-----------|
-| Starter | $49/mo | 1 | 8 |
-| Pro | $99/mo | 3 | Unlimited |
+| Tier    | Price  | Configs | Videos/mo |
+| ------- | ------ | ------- | --------- |
+| Starter | $49/mo | 1       | 8         |
+| Pro     | $99/mo | 3       | Unlimited |
 
 Free tier: 2 pipeline runs, no card required.
 
@@ -64,9 +64,3 @@ npm test
 ---
 
 ## Notes
-
-- Entity: Sabai Wave LLC
-- Domain: aevox.studio
-- YouTube API default quota: 10,000 units/day — apply for increase before launch
-- ElevenLabs quota enforced per tier before each VoiceAgent run
-- Video assembly (Creatomate) is Phase 2 — stub only at MVP

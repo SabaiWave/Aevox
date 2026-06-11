@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import type { ChannelConfig } from '@/types'
 import ConfigEditView from './ConfigEditView'

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { RunStatusBadge } from '@/components/RunStatusBadge'

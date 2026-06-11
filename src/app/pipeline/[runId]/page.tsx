@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import type { PipelineRun } from '@/types'
 import { PipelineRunView } from './PipelineRunView'

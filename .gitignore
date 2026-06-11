@@ -11,6 +11,10 @@ node_modules/
 # Build
 /dist
 /out
+tsconfig.tsbuildinfo
+
+# Supabase CLI
+supabase/.temp/
 
 # OS
 .DS_Store

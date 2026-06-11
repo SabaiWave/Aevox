@@ -14,7 +14,7 @@ export const darkloreConfig: ChannelConfig = {
     'graphic gore',
     'religious mockery',
   ],
-  voiceId: 'placeholder-voice-id',
+  voiceId: 'ABCDEFGHIJabcdefgh01',
   voiceModel: 'eleven_multilingual_v2',
   ytTitleTemplate: '{topic} | DarkLore',
   ytDescriptionTemplate:

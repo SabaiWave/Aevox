@@ -1,6 +1,8 @@
 -- Seed: DarkLore channel config for local development
 -- Run after migrations: supabase db reset (applies migrations + seed)
 
+SET search_path = aevox;
+
 INSERT INTO users (id, clerk_id, email, tier)
 VALUES (
   'a0000000-0000-0000-0000-000000000001',

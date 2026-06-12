@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ChannelConfigForm, { type ChannelConfigFormData } from '@/components/ChannelConfigForm'
-import { getSupabaseClient } from '@/lib/supabase'
 import type { ChannelConfig } from '@/types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -13,9 +12,6 @@ interface ConfigEditViewProps {
   config?: ChannelConfig
   id: string
 }
-
-// Pre-auth stub. Replaced in Phase 4 with real Clerk userId.
-const PRE_AUTH_USER_ID = 'anonymous'
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -65,59 +61,27 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
     setSavedVisible(false)
 
     try {
-      const supabase = getSupabaseClient()
-
       if (isNew) {
-        const { data, error } = await supabase
-          .from('channel_configs')
-          .insert({
-            user_id: PRE_AUTH_USER_ID,
-            name: formData.name,
-            niche: formData.niche,
-            tone: formData.tone,
-            script_structure: formData.scriptStructure,
-            target_duration_min: formData.targetDurationMin,
-            forbidden_topics: formData.forbiddenTopics,
-            voice_id: formData.voiceId,
-            voice_model: formData.voiceModel,
-            yt_title_template: formData.ytTitleTemplate,
-            yt_description_template: formData.ytDescriptionTemplate,
-            yt_tags: formData.ytTags,
-            yt_category_id: formData.ytCategoryId,
-            yt_privacy: formData.ytPrivacy,
-          })
-          .select('id')
-          .single()
-
-        if (error || !data) {
-          throw new Error(error?.message ?? 'Insert failed')
+        const res = await fetch('/api/configs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+        const json = await res.json()
+        if (!res.ok || !json.data?.id) {
+          throw new Error(json.error ?? 'Create failed')
         }
-
-        router.push(`/configs/${data.id}`)
+        router.push(`/configs/${json.data.id}`)
       } else {
-        const { error } = await supabase
-          .from('channel_configs')
-          .update({
-            name: formData.name,
-            niche: formData.niche,
-            tone: formData.tone,
-            script_structure: formData.scriptStructure,
-            target_duration_min: formData.targetDurationMin,
-            forbidden_topics: formData.forbiddenTopics,
-            voice_id: formData.voiceId,
-            voice_model: formData.voiceModel,
-            yt_title_template: formData.ytTitleTemplate,
-            yt_description_template: formData.ytDescriptionTemplate,
-            yt_tags: formData.ytTags,
-            yt_category_id: formData.ytCategoryId,
-            yt_privacy: formData.ytPrivacy,
-          })
-          .eq('id', id)
-
-        if (error) {
-          throw new Error(error.message)
+        const res = await fetch(`/api/configs/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          throw new Error(json.error ?? 'Update failed')
         }
-
         setSavedVisible(true)
       }
     } finally {

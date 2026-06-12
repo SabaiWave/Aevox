@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type {
   AgentResult,
   PipelineStage,
@@ -193,10 +193,6 @@ function ResultBody({
 
 export function AgentResultCard({ stage, result, state }: AgentResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(state !== 'pending')
-
-  useEffect(() => {
-    setIsExpanded(state !== 'pending')
-  }, [state])
 
   return (
     <div

@@ -14,6 +14,7 @@ interface TavilyResponse {
 }
 
 export class ResearchAgent {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async run(topic: string, _config: ChannelConfig): Promise<AgentResult<SourcePackage>> {
     const start = Date.now()
 

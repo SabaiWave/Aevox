@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { UsageWidget } from '@/components/UsageWidget'
+import YouTubeConnectionBadge from '@/components/YouTubeConnectionBadge'
 import type { StageState } from '@/types'
 
 function toStageState(status: string): StageState {
@@ -24,18 +26,26 @@ function formatDate(iso: string): string {
 }
 
 export default async function DashboardPage() {
+  const { userId } = await auth()
   const supabase = getSupabaseServerClient()
 
-  // Fetch recent pipeline runs
+  // Resolve Clerk userId → internal uuid
+  const { data: userRow } = userId
+    ? await supabase.from('users').select('id').eq('clerk_id', userId).single()
+    : { data: null }
+  const userUuid = userRow?.id ?? ''
+
+  // Fetch recent pipeline runs (scoped to this user)
   const { data: runs, error: runsError } = await supabase
     .from('pipeline_runs')
     .select('id, topic, status, config_id, created_at, updated_at')
+    .eq('user_id', userUuid)
     .order('created_at', { ascending: false })
     .limit(10)
 
   if (runsError) console.error('[Dashboard] Failed to fetch runs:', runsError.message)
 
-  // Fetch usage stats for this month
+  // Fetch usage stats for this month (scoped to this user)
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
   startOfMonth.setHours(0, 0, 0, 0)
@@ -43,13 +53,18 @@ export default async function DashboardPage() {
   const { data: usageLogs } = await supabase
     .from('usage_logs')
     .select('chars_used')
+    .eq('user_id', userUuid)
     .gte('created_at', startOfMonth.toISOString())
 
   const charsUsed = (usageLogs ?? []).reduce(
     (sum, row) => sum + (row.chars_used ?? 0),
     0
   )
-  const videosUsed = (runs ?? []).filter((r) => r.status === 'complete').length
+  const { count: videosUsed } = await supabase
+    .from('pipeline_runs')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userUuid)
+    .eq('status', 'complete')
 
   return (
     <div
@@ -95,36 +110,8 @@ export default async function DashboardPage() {
           gap: '1rem',
         }}
       >
-        {/* YouTube connection badge (Phase 4 stub) */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '6px 12px',
-            borderRadius: '9999px',
-            border: '1px solid var(--color-border-1)',
-            backgroundColor: 'var(--color-surface-1)',
-          }}
-        >
-          <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-status-pending)',
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontSize: '0.875rem',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            YouTube: Not connected
-          </span>
-        </div>
+        {/* YouTube connection badge */}
+        <YouTubeConnectionBadge />
 
         {/* Start New Run button */}
         <Link
@@ -148,7 +135,7 @@ export default async function DashboardPage() {
       <UsageWidget
         charsUsed={charsUsed}
         charsLimit={50000}
-        videosUsed={videosUsed}
+        videosUsed={videosUsed ?? 0}
         videosLimit={2}
         tier="free"
       />

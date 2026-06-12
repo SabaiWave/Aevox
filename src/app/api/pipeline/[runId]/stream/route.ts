@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server'
+import { auth } from '@/lib/auth'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { getRunStore, deleteRunStore } from '@/lib/pipeline-events'
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ runId: string }> },
 ) {
+  // ── 0. Auth ────────────────────────────────────────────────────────────────
+  const { userId } = await auth()
+  if (!userId) return new Response('Unauthorized', { status: 401 })
+
   const { runId } = await params
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -14,6 +20,39 @@ export async function GET(
       {
         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
         status: 400,
+      },
+    )
+  }
+
+  // ── 1. Verify run ownership ────────────────────────────────────────────────
+  const supabase = getSupabaseServerClient()
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', userId)
+    .single()
+  if (!userRow) {
+    return new Response(
+      `data: ${JSON.stringify({ type: 'pipeline_error', message: 'User not found', timestamp: new Date().toISOString() })}\n\n`,
+      {
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+        status: 403,
+      },
+    )
+  }
+
+  const { data: runRow } = await supabase
+    .from('pipeline_runs')
+    .select('id')
+    .eq('id', runId)
+    .eq('user_id', userRow.id)
+    .single()
+  if (!runRow) {
+    return new Response(
+      `data: ${JSON.stringify({ type: 'pipeline_error', message: 'Run not found', timestamp: new Date().toISOString() })}\n\n`,
+      {
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+        status: 403,
       },
     )
   }

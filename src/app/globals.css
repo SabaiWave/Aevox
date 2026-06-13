@@ -89,7 +89,7 @@ body {
   border-left-color: var(--color-primary);
 }
 
-@keyframes aevox-pulse {
+@keyframes klipto-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
@@ -99,6 +99,6 @@ body {
   height: 8px;
   border-radius: 50%;
   background-color: var(--color-status-running);
-  animation: aevox-pulse 1.2s ease-in-out infinite;
+  animation: klipto-pulse 1.2s ease-in-out infinite;
   flex-shrink: 0;
 }

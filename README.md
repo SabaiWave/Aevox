@@ -1,4 +1,4 @@
-# Aevox
+# Klipto
 
 A config-driven content pipeline that turns a topic into a publish-ready voiceover and research package in under 30 minutes.
 

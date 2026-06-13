@@ -16,7 +16,7 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">Aevox</div>
+      <div className="sidebar-brand">Klipto</div>
       <nav>
         {navItems.map(({ href, label, icon: Icon }) => (
           <Link

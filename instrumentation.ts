@@ -41,7 +41,7 @@ function logStartup() {
       `  ${label.padEnd(36)}${checks[key] ? '✓ set' : isRequired ? '✗ MISSING — app will not work' : '✗ not configured'}`
 
     console.log('\n─────────────────────────────────────────────────')
-    console.log(`  Aevox  [${env.toUpperCase()}]`)
+    console.log(`  Klipto  [${env.toUpperCase()}]`)
     console.log('─────────────────────────────────────────────────')
     console.log(fmt('NEXT_PUBLIC_SUPABASE_URL',      'NEXT_PUBLIC_SUPABASE_URL',      true))
     console.log(fmt('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', true))
@@ -55,7 +55,7 @@ function logStartup() {
   } else {
     console.log(JSON.stringify({
       level: 'info',
-      message: 'Aevox server starting',
+      message: 'Klipto server starting',
       env,
       keysConfigured: Object.entries(checks).filter(([, v]) => v).map(([k]) => k),
       keysMissing: missing,

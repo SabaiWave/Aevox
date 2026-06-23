@@ -332,7 +332,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
   }
 
   function quickFill() {
-    setName('DarkLore')
+    setName(`DarkLore-${Math.random().toString(36).slice(2, 8)}`)
     setNiche('SE Asia folklore')
     setTone('Mysterious, educational')
     setScriptStructure('Hook (30s) → Origin story (2min) → Mythology deep-dive (4min) → Modern sightings (2min) → Outro + CTA (30s)')

@@ -12,10 +12,10 @@ const DOT_COLOR: Record<YouTubeStatus, string> = {
 }
 
 const LABEL: Record<YouTubeStatus, string> = {
-  connected: 'Connected',
-  disconnected: 'Not connected',
-  expired: 'Token expired',
-  loading: 'Checking…',
+  connected: 'YouTube connected',
+  disconnected: 'YouTube not connected',
+  expired: 'YouTube token expired',
+  loading: 'Checking YouTube…',
 }
 
 export default function YouTubeConnectionBadge() {

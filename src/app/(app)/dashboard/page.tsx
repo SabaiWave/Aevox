@@ -33,15 +33,17 @@ export default async function DashboardPage() {
   const { data: userRow } = userId
     ? await supabase.from('users').select('id').eq('clerk_id', userId).single()
     : { data: null }
-  const userUuid = userRow?.id ?? ''
+  const userUuid = userRow?.id ?? null
 
   // Fetch recent pipeline runs (scoped to this user)
-  const { data: runs, error: runsError } = await supabase
-    .from('pipeline_runs')
-    .select('id, topic, status, config_id, created_at, updated_at')
-    .eq('user_id', userUuid)
-    .order('created_at', { ascending: false })
-    .limit(10)
+  const { data: runs, error: runsError } = userUuid
+    ? await supabase
+        .from('pipeline_runs')
+        .select('id, topic, status, config_id, created_at, updated_at')
+        .eq('user_id', userUuid)
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : { data: [], error: null }
 
   if (runsError) console.error('[Dashboard] Failed to fetch runs:', runsError.message)
 
@@ -50,11 +52,13 @@ export default async function DashboardPage() {
   startOfMonth.setDate(1)
   startOfMonth.setHours(0, 0, 0, 0)
 
-  const { data: usageLogs } = await supabase
-    .from('usage_logs')
-    .select('chars_used')
-    .eq('user_id', userUuid)
-    .gte('created_at', startOfMonth.toISOString())
+  const { data: usageLogs } = userUuid
+    ? await supabase
+        .from('usage_logs')
+        .select('chars_used')
+        .eq('user_id', userUuid)
+        .gte('created_at', startOfMonth.toISOString())
+    : { data: [] }
 
   const charsUsed = (usageLogs ?? []).reduce(
     (sum, row) => sum + (row.chars_used ?? 0),
@@ -113,9 +117,9 @@ export default async function DashboardPage() {
         {/* YouTube connection badge */}
         <YouTubeConnectionBadge />
 
-        {/* Start New Run button */}
+        {/* New Run button */}
         <Link
-          href="/configs"
+          href="/pipeline/new"
           style={{
             display: 'inline-block',
             padding: '8px 16px',
@@ -127,7 +131,7 @@ export default async function DashboardPage() {
             textDecoration: 'none',
           }}
         >
-          Start New Run
+          New Run
         </Link>
       </div>
 
@@ -189,7 +193,7 @@ export default async function DashboardPage() {
               Start your first run to see results here.
             </p>
             <Link
-              href="/configs"
+              href="/pipeline/new"
               style={{
                 marginTop: '0.75rem',
                 display: 'inline-block',
@@ -202,7 +206,7 @@ export default async function DashboardPage() {
                 textDecoration: 'none',
               }}
             >
-              Start New Run
+              New Run
             </Link>
           </div>
         ) : (

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 type YouTubeStatus = 'connected' | 'disconnected' | 'expired' | 'loading'
 
@@ -21,8 +20,6 @@ const LABEL: Record<YouTubeStatus, string> = {
 
 export default function YouTubeConnectionBadge() {
   const [status, setStatus] = useState<YouTubeStatus>('loading')
-  const router = useRouter()
-
   useEffect(() => {
     fetch('/api/auth/youtube/status')
       .then((r) => r.json())
@@ -70,7 +67,7 @@ export default function YouTubeConnectionBadge() {
       {/* Connect / Reconnect button */}
       {showButton && (
         <button
-          onClick={() => router.push('/api/auth/youtube')}
+          onClick={() => { window.location.href = '/api/auth/youtube' }}
           style={{
             cursor: 'pointer',
             background: 'transparent',

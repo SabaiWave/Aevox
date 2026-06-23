@@ -286,7 +286,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
   )
 
   // ── Validation errors ──
-  const [errors, setErrors] = useState<Partial<Record<'name' | 'niche' | 'tone', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<'name' | 'niche' | 'tone' | 'scriptStructure' | 'voiceId', string>>>({})
   const [formError, setFormError] = useState<string>('')
 
   // ── Submit ──
@@ -298,6 +298,8 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
     if (!name.trim()) newErrors.name = 'Name is required'
     if (!niche.trim()) newErrors.niche = 'Niche is required'
     if (!tone.trim()) newErrors.tone = 'Tone is required'
+    if (!scriptStructure.trim()) newErrors.scriptStructure = 'Script structure is required'
+    if (!voiceId.trim()) newErrors.voiceId = 'Voice ID is required'
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -329,8 +331,33 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
     }
   }
 
+  function quickFill() {
+    setName('DarkLore')
+    setNiche('SE Asia folklore')
+    setTone('Mysterious, educational')
+    setScriptStructure('Hook (30s) → Origin story (2min) → Mythology deep-dive (4min) → Modern sightings (2min) → Outro + CTA (30s)')
+    setVoiceId('21m00Tcm4TlvDq8ikWAM')
+    setVoiceModel('eleven_multilingual_v2')
+    setYtTitleTemplate('{{topic}} | DarkLore')
+    setYtDescriptionTemplate('Deep dive into {{topic}}. Subscribe for more SE Asia folklore.')
+    setYtPrivacy('private')
+    setErrors({})
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate style={{ maxWidth: '640px' }}>
+
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ marginBottom: '1rem' }}>
+          <button
+            type="button"
+            onClick={quickFill}
+            style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', border: '1px dashed var(--color-border-2)', background: 'transparent', color: 'var(--color-text-tertiary)', cursor: 'pointer' }}
+          >
+            ⚡ Quick fill
+          </button>
+        </div>
+      )}
 
       {/* ── Section 1: Channel Identity ── */}
       <section style={sectionStyle}>
@@ -383,13 +410,16 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
         <p style={sectionHeadingStyle}>Script Settings</p>
 
         <div style={fieldStyle}>
-          <label style={labelStyle}>Script Structure</label>
+          <label style={labelStyle}>
+            Script Structure <span style={{ color: 'var(--color-status-failed)' }}>*</span>
+          </label>
           <TextareaInput
             value={scriptStructure}
-            onChange={setScriptStructure}
+            onChange={(v) => { setScriptStructure(v); if (errors.scriptStructure) setErrors((prev) => ({ ...prev, scriptStructure: undefined })) }}
             placeholder="Describe the episode format: hook, story beats, outro, CTA..."
             rows={4}
           />
+          {errors.scriptStructure && <p style={errorTextStyle}>{errors.scriptStructure}</p>}
         </div>
 
         <div style={fieldStyle}>
@@ -419,12 +449,16 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
         <p style={sectionHeadingStyle}>Voice Settings</p>
 
         <div style={fieldStyle}>
-          <label style={labelStyle}>Voice ID</label>
+          <label style={labelStyle}>
+            Voice ID <span style={{ color: 'var(--color-status-failed)' }}>*</span>
+          </label>
           <TextInput
             value={voiceId}
-            onChange={setVoiceId}
+            onChange={(v) => { setVoiceId(v); if (errors.voiceId) setErrors((prev) => ({ ...prev, voiceId: undefined })) }}
             placeholder="ElevenLabs voice ID"
+            error={!!errors.voiceId}
           />
+          {errors.voiceId && <p style={errorTextStyle}>{errors.voiceId}</p>}
         </div>
 
         <div style={fieldStyle}>

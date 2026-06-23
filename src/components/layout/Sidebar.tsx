@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Zap, Settings } from 'lucide-react'
+import { UserButton } from '@clerk/nextjs'
+import { LayoutDashboard, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/pipeline', label: 'Pipeline', icon: Zap },
   { href: '/configs', label: 'Configs', icon: Settings },
 ]
 
@@ -29,6 +29,9 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+      <div style={{ marginTop: 'auto', padding: '1rem' }}>
+        <UserButton />
+      </div>
     </aside>
   )
 }

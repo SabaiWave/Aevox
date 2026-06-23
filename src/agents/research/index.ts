@@ -94,6 +94,7 @@ export class ResearchAgent {
         gaps: [],
         sourceUrls: sources.map((s) => s.url),
         durationMs: Date.now() - start,
+        usage: { searchCount: 1 },
       }
     } catch (err) {
       return {

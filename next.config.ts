@@ -9,7 +9,12 @@ const required = [
   'ANTHROPIC_API_KEY',
   'TAVILY_API_KEY',
   'ELEVENLABS_API_KEY',
-  // Phase 4 — add Clerk + YouTube vars here
+  // Phase 4 — auth + YouTube OAuth
+  'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+  'CLERK_SECRET_KEY',
+  'YOUTUBE_CLIENT_ID',
+  'YOUTUBE_CLIENT_SECRET',
+  'YOUTUBE_TOKEN_ENCRYPTION_KEY',
   // Phase 5 — add Stripe vars here
 ]
 

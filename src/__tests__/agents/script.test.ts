@@ -97,6 +97,7 @@ describe('ScriptAgent', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key'
       mockMessagesCreate.mockResolvedValue({
         content: [{ type: 'text', text: 'In the dark of night, the Pontianak walks.' }],
+        usage: { input_tokens: 10, output_tokens: 10 },
       })
 
       const agent = new ScriptAgent()
@@ -126,6 +127,7 @@ describe('ScriptAgent', () => {
       jest.clearAllMocks()
       mockMessagesCreate.mockResolvedValue({
         content: [{ type: 'text', text: 'A valid script output.' }],
+        usage: { input_tokens: 10, output_tokens: 10 },
       })
     })
 

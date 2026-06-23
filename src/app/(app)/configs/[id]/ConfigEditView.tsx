@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ChannelConfigForm, { type ChannelConfigFormData } from '@/components/ChannelConfigForm'
@@ -34,12 +34,6 @@ const h1Style: React.CSSProperties = {
   margin: 0,
 }
 
-const savedTextStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  color: 'var(--color-status-complete)',
-  marginTop: '0.75rem',
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
@@ -47,18 +41,9 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
   const isNew = id === 'new'
 
   const [isSaving, setIsSaving] = useState(false)
-  const [savedVisible, setSavedVisible] = useState(false)
-
-  // Auto-hide the "Saved" feedback after 3 seconds
-  useEffect(() => {
-    if (!savedVisible) return
-    const timer = setTimeout(() => setSavedVisible(false), 3000)
-    return () => clearTimeout(timer)
-  }, [savedVisible])
 
   async function handleSave(formData: ChannelConfigFormData) {
     setIsSaving(true)
-    setSavedVisible(false)
 
     try {
       if (isNew) {
@@ -71,7 +56,7 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
         if (!res.ok || !json.data?.id) {
           throw new Error(json.error ?? 'Create failed')
         }
-        router.push(`/configs/${json.data.id}`)
+        router.push('/configs')
       } else {
         const res = await fetch(`/api/configs/${id}`, {
           method: 'PUT',
@@ -82,7 +67,7 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
         if (!res.ok) {
           throw new Error(json.error ?? 'Update failed')
         }
-        setSavedVisible(true)
+        router.push('/configs')
       }
     } finally {
       setIsSaving(false)
@@ -101,10 +86,6 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
       </div>
 
       <ChannelConfigForm config={config} onSave={handleSave} isSaving={isSaving} />
-
-      {savedVisible && (
-        <p style={savedTextStyle}>Saved successfully</p>
-      )}
     </div>
   )
 }

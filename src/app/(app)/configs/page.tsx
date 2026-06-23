@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -113,11 +114,18 @@ const emptySubtitleStyle: React.CSSProperties = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ConfigsPage() {
+  const { userId } = await auth()
   const supabase = getSupabaseServerClient()
+
+  // Resolve Clerk userId → internal uuid
+  const { data: userRow } = userId
+    ? await supabase.from('users').select('id').eq('clerk_id', userId).single()
+    : { data: null }
 
   const { data: configs, error: listError } = await supabase
     .from('channel_configs')
     .select('id, name, niche, tone, created_at')
+    .eq('user_id', userRow?.id ?? '')
     .order('created_at', { ascending: false })
     .limit(50)
 

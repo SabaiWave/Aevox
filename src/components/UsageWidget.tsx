@@ -32,7 +32,7 @@ function UsageMeter({ label, used, limit, tier }: MeterProps) {
           fontSize: '0.75rem',
           color: 'var(--color-text-tertiary)',
           textTransform: 'uppercase',
-          letterSpacing: '0.05em',
+          letterSpacing: '0.04em',
           fontWeight: 500,
         }}
       >

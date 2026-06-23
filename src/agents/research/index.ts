@@ -14,6 +14,7 @@ interface TavilyResponse {
 }
 
 export class ResearchAgent {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async run(topic: string, _config: ChannelConfig): Promise<AgentResult<SourcePackage>> {
     const start = Date.now()
 
@@ -93,6 +94,7 @@ export class ResearchAgent {
         gaps: [],
         sourceUrls: sources.map((s) => s.url),
         durationMs: Date.now() - start,
+        usage: { searchCount: 1 },
       }
     } catch (err) {
       return {

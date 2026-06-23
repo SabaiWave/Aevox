@@ -77,14 +77,27 @@ describe('PublishAgent', () => {
       expect(result.data).toBeNull()
     })
 
-    it('sanitizes oauthToken with control chars and proceeds to degraded stub', async () => {
+    it('sanitizes oauthToken with control chars and proceeds to upload', async () => {
       // Token with control characters but sufficient length after sanitization
       const tokenWithControlChars = 'valid\x01token\x0Bwith\x1Fchars1234'
+
+      // Mock: audio fetch succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      })
+      // Mock: YouTube upload succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'abc123', snippet: { title: 'Test Video' } }),
+      })
+
       const agent = new PublishAgent()
       const result = await agent.run(AUDIO_URL, TOPIC, darkloreConfig, tokenWithControlChars)
 
-      // Should proceed past validation (token is long enough) and hit the degraded stub
-      expect(result.status).toBe('degraded')
+      // Should proceed past validation (token is long enough) and succeed
+      expect(result.status).toBe('success')
+      expect(result.data?.videoId).toBe('abc123')
     })
 
     it('rejects a token that is all control chars (empty after stripping)', async () => {
@@ -99,13 +112,58 @@ describe('PublishAgent', () => {
       expect(result.data).toBeNull()
     })
 
-    it('returns status degraded for valid oauthToken (Phase 4 stub)', async () => {
+    it('returns status success with videoId when upload succeeds', async () => {
+      // Mock: audio fetch succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(1024),
+      })
+      // Mock: YouTube upload succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'yt-video-xyz', snippet: { title: 'My Uploaded Video' } }),
+      })
+
       const agent = new PublishAgent()
       const result = await agent.run(AUDIO_URL, TOPIC, darkloreConfig, VALID_OAUTH)
 
-      expect(result.status).toBe('degraded')
+      expect(result.status).toBe('success')
+      expect(result.data).not.toBeNull()
+      expect(result.data!.videoId).toBe('yt-video-xyz')
+      expect(result.data!.videoUrl).toBe('https://www.youtube.com/watch?v=yt-video-xyz')
+      expect(typeof result.data!.title).toBe('string')
+    })
+
+    it('returns status failed when audio fetch fails', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 403 })
+
+      const agent = new PublishAgent()
+      const result = await agent.run(AUDIO_URL, TOPIC, darkloreConfig, VALID_OAUTH)
+
+      expect(result.status).toBe('failed')
       expect(result.data).toBeNull()
-      expect(typeof result.error).toBe('string')
+      expect(result.error).toContain('Failed to fetch audio')
+    })
+
+    it('returns status failed when YouTube upload returns non-ok status', async () => {
+      // Mock: audio fetch succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      })
+      // Mock: YouTube upload fails
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: async () => 'Unauthorized',
+      })
+
+      const agent = new PublishAgent()
+      const result = await agent.run(AUDIO_URL, TOPIC, darkloreConfig, VALID_OAUTH)
+
+      expect(result.status).toBe('failed')
+      expect(result.data).toBeNull()
+      expect(result.error).toContain('YouTube upload failed')
     })
   })
 

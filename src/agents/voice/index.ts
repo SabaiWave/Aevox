@@ -53,10 +53,19 @@ export class VoiceAgent {
 
         if (!response.ok) {
           const errText = await response.text().catch(() => response.statusText)
+          console.error(`[VoiceAgent] ElevenLabs ${response.status}:`, errText)
+          let userMessage = `Voice generation failed (${response.status})`
+          if (response.status === 402) {
+            userMessage = 'ElevenLabs: paid plan required for this voice. Use a voice from your own ElevenLabs account.'
+          } else if (response.status === 401) {
+            userMessage = 'ElevenLabs: invalid API key.'
+          } else if (response.status === 429) {
+            userMessage = 'ElevenLabs: rate limit exceeded. Try again shortly.'
+          }
           return {
             status: 'failed',
             data: null,
-            error: `ElevenLabs error ${response.status}: ${errText}`,
+            error: userMessage,
             durationMs: Date.now() - start,
           }
         }
@@ -101,12 +110,14 @@ export class VoiceAgent {
           charsUsed: script.length,
         },
         durationMs: Date.now() - start,
+        usage: { charsUsed: script.length },
       }
     } catch (err) {
+      console.error('[VoiceAgent] Unexpected error:', err)
       return {
         status: 'failed',
         data: null,
-        error: err instanceof Error ? err.message : String(err),
+        error: 'Voice generation failed unexpectedly. Check server logs.',
         durationMs: Date.now() - start,
       }
     }

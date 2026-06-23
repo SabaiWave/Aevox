@@ -111,6 +111,10 @@ export class ScriptAgent {
         status: 'success',
         data: block.text.trim(),
         durationMs: Date.now() - start,
+        usage: {
+          tokensIn: message.usage.input_tokens,
+          tokensOut: message.usage.output_tokens,
+        },
       }
     } catch (err) {
       return {

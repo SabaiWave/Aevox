@@ -2,6 +2,13 @@
 
 export type AgentStatus = 'success' | 'failed' | 'degraded'
 
+export interface AgentUsage {
+  tokensIn?: number
+  tokensOut?: number
+  searchCount?: number
+  charsUsed?: number
+}
+
 export interface AgentResult<T> {
   status: AgentStatus
   data: T | null
@@ -10,6 +17,7 @@ export interface AgentResult<T> {
   gaps?: string[]       // missing info gaps, used by ResearchAgent + buildDegradedContext
   sourceUrls?: string[] // used by ResearchAgent
   durationMs?: number   // elapsed time for this agent stage
+  usage?: AgentUsage
 }
 
 // ─── Research ────────────────────────────────────────────────────────────────

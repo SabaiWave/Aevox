@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import type { PipelineRun, PipelineStage, StageState, SSEEvent } from '@/types'
+import type { AgentResult, PipelineRun, PipelineStage, StageState, SSEEvent } from '@/types'
 import { PipelineStageTracker } from '@/components/PipelineStageTracker'
 import type { StageInfo } from '@/components/PipelineStageTracker'
 import { AgentResultCard } from '@/components/AgentResultCard'
@@ -127,6 +127,16 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
               : s,
           ),
         )
+        if (event.data) {
+          const result = event.data as AgentResult<unknown>
+          setRun(prev => ({
+            ...prev,
+            ...(targetStage === 'research' && { researchResult: result as PipelineRun['researchResult'] }),
+            ...(targetStage === 'script' && { scriptResult: result as PipelineRun['scriptResult'] }),
+            ...(targetStage === 'voice' && { voiceResult: result as PipelineRun['voiceResult'] }),
+            ...(targetStage === 'publish' && { publishResult: result as PipelineRun['publishResult'] }),
+          }))
+        }
       }
 
       if (event.type === 'stage_failed' && event.stage) {
@@ -242,7 +252,7 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
             margin: '0 0 1rem 0',
           }}
         >
-          Start New Run
+          New Run
         </h2>
 
         {configs.length === 0 ? (
@@ -301,7 +311,7 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
                   opacity: isStarting || !topic.trim() ? 0.6 : 1,
                 }}
               >
-                {isStarting ? 'Starting...' : 'Start Pipeline'}
+                {isStarting ? 'Starting...' : 'Start Run'}
               </button>
             </div>
           </form>
@@ -403,7 +413,7 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
               fontSize: '0.75rem',
               fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.04em',
               color: 'var(--color-text-tertiary)',
               margin: '0 0 0.5rem 0',
             }}

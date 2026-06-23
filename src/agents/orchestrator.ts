@@ -15,6 +15,58 @@ import type {
   VoiceOutput,
 } from '@/types'
 
+// ─── Cost rates (USD) ─────────────────────────────────────────────────────────
+
+const COST_RATES = {
+  tavilyPerSearch: 0.015,
+  claudeInputPerMTok: 3.0,
+  claudeOutputPerMTok: 15.0,
+  elevenLabsPerKChars: 0.18,
+}
+
+export interface CostSummary {
+  research: { searches: number; usd: number }
+  script: { tokensIn: number; tokensOut: number; usd: number }
+  voice: { chars: number; usd: number }
+  totalUsd: number
+}
+
+export function buildCostSummary(
+  researchResult: AgentResult<SourcePackage> | null,
+  scriptResult: AgentResult<string> | null,
+  voiceResult: AgentResult<VoiceOutput> | null,
+): CostSummary {
+  const searches = researchResult?.usage?.searchCount ?? 0
+  const tokensIn = scriptResult?.usage?.tokensIn ?? 0
+  const tokensOut = scriptResult?.usage?.tokensOut ?? 0
+  const chars = voiceResult?.usage?.charsUsed ?? voiceResult?.data?.charsUsed ?? 0
+
+  const researchUsd = searches * COST_RATES.tavilyPerSearch
+  const scriptUsd =
+    (tokensIn / 1_000_000) * COST_RATES.claudeInputPerMTok +
+    (tokensOut / 1_000_000) * COST_RATES.claudeOutputPerMTok
+  const voiceUsd = (chars / 1000) * COST_RATES.elevenLabsPerKChars
+
+  const totalUsd = researchUsd + scriptUsd + voiceUsd
+
+  return {
+    research: { searches, usd: researchUsd },
+    script: { tokensIn, tokensOut, usd: scriptUsd },
+    voice: { chars, usd: voiceUsd },
+    totalUsd,
+  }
+}
+
+function logCostSummary(runId: string, cost: CostSummary): void {
+  const fmt = (n: number) => `$${n.toFixed(4)}`
+  console.log(`[Run ${runId.slice(0, 8)}] Cost summary:`)
+  console.log(`  Research  — ${cost.research.searches} search(es)          ${fmt(cost.research.usd)}`)
+  console.log(`  Script    — ${cost.script.tokensIn} in / ${cost.script.tokensOut} out tokens  ${fmt(cost.script.usd)}`)
+  console.log(`  Voice     — ${cost.voice.chars} chars               ${fmt(cost.voice.usd)}`)
+  console.log(`  ────────────────────────────────────────────`)
+  console.log(`  Total                                        ${fmt(cost.totalUsd)}`)
+}
+
 // ─── buildDegradedContext ─────────────────────────────────────────────────────
 
 export function buildDegradedContext(
@@ -211,6 +263,8 @@ export async function runPipeline(
       : null
 
     const totalDurationMs = Date.now() - startMs
+    const costSummary = buildCostSummary(researchResult, scriptResult, voiceResult)
+    logCostSummary(runId, costSummary)
 
     await writePipelineRun({
       runId,
@@ -222,6 +276,7 @@ export async function runPipeline(
       voiceResult,
       publishResult,
       degradedContext,
+      costSummary,
     })
 
     onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
@@ -289,6 +344,7 @@ interface WriteArgs {
   voiceResult: AgentResult<VoiceOutput> | null
   publishResult: AgentResult<PublishOutput> | null
   degradedContext: DegradedContext | null
+  costSummary?: CostSummary
 }
 
 async function writePipelineRun(args: WriteArgs): Promise<void> {
@@ -305,6 +361,7 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
       voice_result: args.voiceResult,
       publish_result: args.publishResult,
       error_message: args.degradedContext?.gapMessages.join('; ') ?? null,
+      cost_summary: args.costSummary ?? null,
       updated_at: new Date().toISOString(),
     })
 

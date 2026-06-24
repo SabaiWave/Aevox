@@ -105,9 +105,9 @@ export async function POST(req: NextRequest) {
     updatedAt: row.updated_at,
   }
 
-  // ── 6. Insert initial pipeline_runs row ────────────────────────────────────
+  // ── 6. Insert initial videos row ──────────────────────────────────────────
   const now = new Date().toISOString()
-  const { error: insertError } = await supabase.from('pipeline_runs').insert({
+  const { error: insertError } = await supabase.from('videos').insert({
     id: runId,
     user_id: userUuid,
     config_id: configId,
@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
   })
 
   if (insertError) {
-    console.error('[api/pipeline] Failed to create pipeline_runs row:', insertError.message)
-    return Response.json({ error: 'Failed to create pipeline run' }, { status: 500 })
+    console.error('[api/videos] Failed to create videos row:', insertError.message)
+    return Response.json({ error: 'Failed to create video' }, { status: 500 })
   }
 
   // ── 7. Create event store ──────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     if (event.type === 'pipeline_done' || event.type === 'pipeline_error') {
       markRunDone(runId)
     }
-  }, { isDryRun: dryRun }).catch(err => console.error('[api/pipeline] runPipeline threw:', err))
+  }, { isDryRun: dryRun }).catch(err => console.error('[api/videos] runPipeline threw:', err))
 
   // ── 10. Return runId immediately ───────────────────────────────────────────
   return Response.json({ data: { runId } }, { status: 200 })

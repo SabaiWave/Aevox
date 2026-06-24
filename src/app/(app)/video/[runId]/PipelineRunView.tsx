@@ -95,7 +95,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
   useEffect(() => {
     if (run.status === 'complete' || run.status === 'failed') return
 
-    const es = new EventSource(`/api/pipeline/${runId}/stream`)
+    const es = new EventSource(`/api/videos/${runId}/stream`)
 
     es.onmessage = (e: MessageEvent) => {
       let event: SSEEvent
@@ -198,7 +198,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <RunStatusBadge status={badgeStatus(run.status)} />
           <Link
-            href="/pipeline/new"
+            href="/video/new"
             style={{
               marginLeft: 'auto',
               fontSize: '0.875rem',

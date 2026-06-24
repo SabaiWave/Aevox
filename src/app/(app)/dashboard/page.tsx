@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   // Fetch recent pipeline runs (scoped to this user, exclude dry runs)
   const { data: runs, error: runsError } = userUuid
     ? await supabase
-        .from('pipeline_runs')
+        .from('videos')
         .select('id, topic, status, config_id, created_at, updated_at')
         .eq('user_id', userUuid)
         .eq('is_dry_run', false)
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
   startOfMonth.setHours(0, 0, 0, 0)
 
   const { count: videosUsed } = await supabase
-    .from('pipeline_runs')
+    .from('videos')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userUuid)
     .eq('status', 'complete')
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
 
         {/* New Video button */}
         <Link
-          href="/pipeline/new"
+          href="/video/new"
           style={{
             display: 'inline-block',
             padding: '8px 16px',
@@ -182,7 +182,7 @@ export default async function DashboardPage() {
               Generate your first video to see results here.
             </p>
             <Link
-              href="/pipeline/new"
+              href="/video/new"
               style={{
                 marginTop: '0.75rem',
                 display: 'inline-block',
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
             {runs.map((run) => (
               <Link
                 key={run.id}
-                href={`/pipeline/${run.id}`}
+                href={`/video/${run.id}`}
                 style={{ textDecoration: 'none' }}
               >
                 <div

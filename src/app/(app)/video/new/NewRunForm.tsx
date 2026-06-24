@@ -42,14 +42,14 @@ export function NewRunForm({ configs, isAdmin }: Props) {
     setIsStarting(true)
     setError('')
     try {
-      const res = await fetch('/api/pipeline', {
+      const res = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim(), ...(isDryRun && { dryRun: true }) }),
       })
       const json = (await res.json()) as { data?: { runId: string }; error?: string }
       if (json.data?.runId) {
-        router.push(`/pipeline/${json.data.runId}`)
+        router.push(`/video/${json.data.runId}`)
       } else {
         setError(json.error ?? 'Failed to start generation')
         setIsStarting(false)

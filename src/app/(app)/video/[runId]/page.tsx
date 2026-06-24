@@ -13,7 +13,7 @@ export default async function PipelinePage({ params }: PageProps) {
 
   const supabase = getSupabaseServerClient()
   const { data: row, error } = await supabase
-    .from('pipeline_runs')
+    .from('videos')
     .select(
       'id, user_id, config_id, topic, status, research_result, script_result, voice_result, publish_result, error_message, created_at, updated_at',
     )

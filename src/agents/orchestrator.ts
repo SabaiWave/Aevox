@@ -358,7 +358,7 @@ interface WriteArgs {
 async function writePipelineRun(args: WriteArgs): Promise<void> {
   try {
     const supabase = getSupabaseServerClient()
-    const { error } = await supabase.from('pipeline_runs').upsert({
+    const { error } = await supabase.from('videos').upsert({
       id: args.runId,
       user_id: args.config.userId,
       topic: args.topic,

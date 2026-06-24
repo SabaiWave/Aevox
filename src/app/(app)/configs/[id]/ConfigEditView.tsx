@@ -11,6 +11,7 @@ import type { ChannelConfig } from '@/types'
 interface ConfigEditViewProps {
   config?: ChannelConfig
   id: string
+  isAdmin?: boolean
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ const h1Style: React.CSSProperties = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
+export default function ConfigEditView({ config, id, isAdmin }: ConfigEditViewProps) {
   const router = useRouter()
   const isNew = id === 'new'
 
@@ -85,7 +86,7 @@ export default function ConfigEditView({ config, id }: ConfigEditViewProps) {
         <h1 style={h1Style}>{pageTitle}</h1>
       </div>
 
-      <ChannelConfigForm config={config} onSave={handleSave} isSaving={isSaving} />
+      <ChannelConfigForm config={config} onSave={handleSave} isSaving={isSaving} isAdmin={isAdmin} />
     </div>
   )
 }

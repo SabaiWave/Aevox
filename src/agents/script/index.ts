@@ -60,10 +60,12 @@ export class ScriptAgent {
     topic: string,
     research: SourcePackage,
     config: ChannelConfig,
+    opts?: { dryRun?: boolean },
   ): Promise<AgentResult<string>> {
     const start = Date.now()
+    const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    if (process.env.DRY_RUN === 'true') {
+    if (isDryRun) {
       return {
         status: 'success',
         data: dryRunScript,

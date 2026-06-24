@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { AgentResult, PipelineRun, PipelineStage, StageState, SSEEvent } from '@/types'
 import { PipelineStageTracker } from '@/components/PipelineStageTracker'
 import type { StageInfo } from '@/components/PipelineStageTracker'
@@ -11,7 +11,7 @@ import { RunStatusBadge } from '@/components/RunStatusBadge'
 interface PipelineRunViewProps {
   runId: string
   initialRun: PipelineRun
-  configs: { id: string; name: string }[]
+  configName?: string | null
 }
 
 function deriveStages(run: PipelineRun): StageInfo[] {
@@ -88,18 +88,14 @@ function badgeStatus(status: PipelineRun['status']): StageState | 'complete' {
   return 'pending'
 }
 
-export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewProps) {
-  const router = useRouter()
+export function PipelineRunView({ runId, initialRun, configName }: PipelineRunViewProps) {
   const [run, setRun] = useState<PipelineRun>(initialRun)
   const [stages, setStages] = useState<StageInfo[]>(() => initialStages(initialRun))
-  const [selectedConfigId, setSelectedConfigId] = useState<string>(configs[0]?.id ?? '')
-  const [topic, setTopic] = useState<string>('')
-  const [isStarting, setIsStarting] = useState<boolean>(false)
 
   useEffect(() => {
     if (run.status === 'complete' || run.status === 'failed') return
 
-    const es = new EventSource(`/api/pipeline/${runId}/stream`)
+    const es = new EventSource(`/api/videos/${runId}/stream`)
 
     es.onmessage = (e: MessageEvent) => {
       let event: SSEEvent
@@ -185,44 +181,6 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
   const voiceIdx = stageIndex('voice')
   const publishIdx = stageIndex('publish')
 
-  async function handleStartRun(e: React.FormEvent) {
-    e.preventDefault()
-    if (!topic.trim()) return
-    setIsStarting(true)
-    try {
-      const res = await fetch('/api/pipeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim() }),
-      })
-      const json = (await res.json()) as { data?: { runId: string } }
-      if (json.data?.runId) {
-        router.push(`/pipeline/${json.data.runId}`)
-      }
-    } finally {
-      setIsStarting(false)
-    }
-  }
-
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--color-surface-2)',
-    border: '1px solid var(--color-border-2)',
-    borderRadius: '8px',
-    fontSize: '0.875rem',
-    padding: '0.5rem 0.75rem',
-    color: 'var(--color-text-primary)',
-    width: '100%',
-    boxSizing: 'border-box',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    color: 'var(--color-text-secondary)',
-    marginBottom: '0.375rem',
-  }
-
   return (
     <div
       style={{
@@ -234,139 +192,46 @@ export function PipelineRunView({ runId, initialRun, configs }: PipelineRunViewP
         gap: '2rem',
       }}
     >
-      {/* New run form */}
-      <div
-        style={{
-          backgroundColor: 'var(--color-surface-1)',
-          border: '1px solid var(--color-border-1)',
-          borderRadius: '8px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: '1.125rem',
-            fontWeight: 500,
-            color: 'var(--color-text-primary)',
-            margin: '0 0 1rem 0',
-          }}
-        >
-          New Run
-        </h2>
-
-        {configs.length === 0 ? (
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-            No channel configs found. Create one first.
-          </p>
-        ) : (
-          <form onSubmit={handleStartRun} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label htmlFor="new-run-config" style={labelStyle}>
-                Config
-              </label>
-              <select
-                id="new-run-config"
-                value={selectedConfigId}
-                onChange={e => setSelectedConfigId(e.target.value)}
-                style={inputStyle}
-                disabled={isStarting}
-              >
-                {configs.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="new-run-topic" style={labelStyle}>
-                Topic
-              </label>
-              <input
-                id="new-run-topic"
-                type="text"
-                placeholder="Enter a topic..."
-                maxLength={500}
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                style={inputStyle}
-                disabled={isStarting}
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isStarting || !topic.trim()}
-                style={{
-                  backgroundColor: 'var(--color-primary)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  padding: '0.5rem 1rem',
-                  cursor: isStarting || !topic.trim() ? 'not-allowed' : 'pointer',
-                  opacity: isStarting || !topic.trim() ? 0.6 : 1,
-                }}
-              >
-                {isStarting ? 'Starting...' : 'Start Run'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
       {/* Page header */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <h1
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        {/* Top row: status + New Video */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <RunStatusBadge status={badgeStatus(run.status)} />
+          <Link
+            href="/video/new"
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              margin: 0,
+              marginLeft: 'auto',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'var(--color-primary)',
+              textDecoration: 'none',
+              padding: '4px 12px',
+              border: '1px solid var(--color-primary)',
+              borderRadius: '8px',
             }}
           >
-            Pipeline Run
-          </h1>
-          <RunStatusBadge status={badgeStatus(run.status)} />
+            New Video
+          </Link>
         </div>
 
-        <span
-          className="font-mono"
+        {/* Topic as primary heading */}
+        <h1
           style={{
-            fontSize: '0.8125rem',
-            color: 'var(--color-text-tertiary)',
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            color: 'var(--color-text-primary)',
+            margin: '0.25rem 0 0',
+            lineHeight: 1.3,
           }}
         >
-          {runId}
-        </span>
+          {run.topic ?? 'Untitled'}
+        </h1>
 
-        {run.topic && (
-          <p
-            style={{
-              fontSize: '0.9375rem',
-              color: 'var(--color-text-secondary)',
-              margin: 0,
-            }}
-          >
-            {run.topic}
-          </p>
+        {/* Config name */}
+        {configName && (
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+            {configName}
+          </span>
         )}
       </div>
 

@@ -68,6 +68,7 @@ function logStartup() {
     console.log(fmt('YOUTUBE_CLIENT_SECRET',         'YOUTUBE_CLIENT_SECRET'))
     console.log(fmt('YOUTUBE_TOKEN_ENCRYPTION_KEY',  'YOUTUBE_TOKEN_ENCRYPTION_KEY'))
     console.log(`  ${'DRY_RUN'.padEnd(36)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
+    console.log(`  ${'ADMIN_USER_IDS'.padEnd(36)}${process.env.ADMIN_USER_IDS ? 'set' : 'not set — admin features disabled'}`)
     console.log('─────────────────────────────────────────────────\n')
   } else {
     console.log(JSON.stringify({

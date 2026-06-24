@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
+import { isAdmin } from '@/lib/is-admin'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { NewRunForm } from './NewRunForm'
 
 export default async function NewPipelinePage() {
   const { userId } = await auth()
+  const adminUser = await isAdmin()
   const supabase = getSupabaseServerClient()
 
   const { data: userRow } = userId
@@ -23,7 +25,7 @@ export default async function NewPipelinePage() {
       <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--color-text-primary)' }}>
         What's your next video about?
       </h1>
-      <NewRunForm configs={configs} />
+      <NewRunForm configs={configs} isAdmin={adminUser} />
     </div>
   )
 }

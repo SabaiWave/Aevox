@@ -25,6 +25,7 @@ interface ChannelConfigFormProps {
   config?: Partial<ChannelConfig>
   onSave: (data: ChannelConfigFormData) => Promise<void>
   isSaving?: boolean
+  isAdmin?: boolean
 }
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
@@ -267,7 +268,7 @@ function SelectInput({ value, onChange, options }: SelectInputProps) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelConfigFormProps) {
+export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }: ChannelConfigFormProps) {
   // ── Field state ──
   const [name, setName] = useState(config?.name ?? '')
   const [niche, setNiche] = useState(config?.niche ?? '')
@@ -347,7 +348,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
   return (
     <form onSubmit={handleSubmit} noValidate style={{ maxWidth: '640px' }}>
 
-      {process.env.NODE_ENV === 'development' && (
+      {isAdmin && (
         <div style={{ marginBottom: '1rem' }}>
           <button
             type="button"

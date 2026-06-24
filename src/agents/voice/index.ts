@@ -5,13 +5,15 @@ export class VoiceAgent {
   async run(
     script: string,
     config: ChannelConfig,
-    runId: string
+    runId: string,
+    opts?: { dryRun?: boolean },
   ): Promise<AgentResult<VoiceOutput>> {
     const start = Date.now()
     const storagePath = `pipeline/${runId}/audio.mp3`
+    const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     try {
-      if (process.env.DRY_RUN === 'true') {
+      if (isDryRun) {
         const { dryRunVoiceOutput } = await import('@/__fixtures__/voice')
         return {
           status: 'success',

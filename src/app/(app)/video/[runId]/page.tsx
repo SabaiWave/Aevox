@@ -13,19 +13,12 @@ export default async function PipelinePage({ params }: PageProps) {
 
   const supabase = getSupabaseServerClient()
   const { data: row, error } = await supabase
-    .from('pipeline_runs')
+    .from('videos')
     .select(
       'id, user_id, config_id, topic, status, research_result, script_result, voice_result, publish_result, error_message, created_at, updated_at',
     )
     .eq('id', runId)
     .single()
-
-  const { data: configRows } = await supabase
-    .from('channel_configs')
-    .select('id, name')
-    .order('name')
-
-  const configs = (configRows ?? []).map(r => ({ id: r.id as string, name: r.name as string }))
 
   if (error || !row) {
     return (
@@ -63,11 +56,15 @@ export default async function PipelinePage({ params }: PageProps) {
             color: 'var(--color-text-secondary)',
           }}
         >
-          This pipeline run does not exist or has been removed.
+          This video generation does not exist or has been removed.
         </p>
       </div>
     )
   }
+
+  const { data: configRow } = row.config_id
+    ? await supabase.from('channel_configs').select('name').eq('id', row.config_id).single()
+    : { data: null }
 
   const run: PipelineRun = {
     id: row.id,
@@ -84,5 +81,5 @@ export default async function PipelinePage({ params }: PageProps) {
     updatedAt: row.updated_at,
   }
 
-  return <PipelineRunView runId={runId} initialRun={run} configs={configs} />
+  return <PipelineRunView runId={runId} initialRun={run} configName={configRow?.name ?? null} />
 }

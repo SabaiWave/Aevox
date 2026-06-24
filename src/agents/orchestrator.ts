@@ -123,6 +123,7 @@ export async function runPipeline(
   config: ChannelConfig,
   oauthToken: string,
   onEvent?: (event: SSEEvent) => void,
+  opts?: { isDryRun?: boolean },
 ): Promise<PipelineResult> {
   const startMs = Date.now()
 
@@ -137,9 +138,11 @@ export async function runPipeline(
     const voice = new VoiceAgent()
     const publish = new PublishAgent()
 
+    const agentOpts = { dryRun: opts?.isDryRun }
+
     // ── Stage 1: Research ──────────────────────────────────────────────────
     onEvent?.({ type: 'stage_start', stage: 'research', state: 'running', timestamp: new Date().toISOString() })
-    researchResult = await research.run(topic, config)
+    researchResult = await research.run(topic, config, agentOpts)
 
     if (researchResult.status === 'failed' || !researchResult.data) {
       // Research failed — skip remaining stages
@@ -157,6 +160,7 @@ export async function runPipeline(
         voiceResult: null,
         publishResult: null,
         degradedContext,
+        isDryRun: opts?.isDryRun,
       })
 
       onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
@@ -176,7 +180,7 @@ export async function runPipeline(
 
     // ── Stage 2: Script ────────────────────────────────────────────────────
     onEvent?.({ type: 'stage_start', stage: 'script', state: 'running', timestamp: new Date().toISOString() })
-    scriptResult = await script.run(topic, researchResult.data, config)
+    scriptResult = await script.run(topic, researchResult.data, config, agentOpts)
 
     if (scriptResult.status === 'failed' || !scriptResult.data) {
       // Script failed — skip remaining stages
@@ -194,6 +198,7 @@ export async function runPipeline(
         voiceResult: null,
         publishResult: null,
         degradedContext,
+        isDryRun: opts?.isDryRun,
       })
 
       onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
@@ -213,7 +218,7 @@ export async function runPipeline(
 
     // ── Stage 3: Voice ─────────────────────────────────────────────────────
     onEvent?.({ type: 'stage_start', stage: 'voice', state: 'running', timestamp: new Date().toISOString() })
-    voiceResult = await voice.run(scriptResult.data, config, runId)
+    voiceResult = await voice.run(scriptResult.data, config, runId, agentOpts)
 
     // Voice failure is non-fatal — continue to publish attempt
     if (voiceResult.status === 'failed' || voiceResult.status === 'degraded') {
@@ -230,7 +235,7 @@ export async function runPipeline(
     // Only attempt publish if we have a real audio URL
     onEvent?.({ type: 'stage_start', stage: 'publish', state: 'running', timestamp: new Date().toISOString() })
     if (audioUrl) {
-      publishResult = await publish.run(audioUrl, topic, config, oauthToken)
+      publishResult = await publish.run(audioUrl, topic, config, oauthToken, agentOpts)
     } else {
       publishResult = {
         status: 'failed',
@@ -277,6 +282,7 @@ export async function runPipeline(
       publishResult,
       degradedContext,
       costSummary,
+      isDryRun: opts?.isDryRun,
     })
 
     onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
@@ -314,6 +320,7 @@ export async function runPipeline(
         voiceResult,
         publishResult,
         degradedContext,
+        isDryRun: opts?.isDryRun,
       })
     } catch {
       // non-fatal — Supabase write failure in error path
@@ -345,12 +352,13 @@ interface WriteArgs {
   publishResult: AgentResult<PublishOutput> | null
   degradedContext: DegradedContext | null
   costSummary?: CostSummary
+  isDryRun?: boolean
 }
 
 async function writePipelineRun(args: WriteArgs): Promise<void> {
   try {
     const supabase = getSupabaseServerClient()
-    const { error } = await supabase.from('pipeline_runs').upsert({
+    const { error } = await supabase.from('videos').upsert({
       id: args.runId,
       user_id: args.config.userId,
       topic: args.topic,
@@ -362,6 +370,7 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
       publish_result: args.publishResult,
       error_message: args.degradedContext?.gapMessages.join('; ') ?? null,
       cost_summary: args.costSummary ?? null,
+      is_dry_run: args.isDryRun ?? false,
       updated_at: new Date().toISOString(),
     })
 

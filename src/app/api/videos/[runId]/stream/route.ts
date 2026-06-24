@@ -42,7 +42,7 @@ export async function GET(
   }
 
   const { data: runRow } = await supabase
-    .from('pipeline_runs')
+    .from('videos')
     .select('id')
     .eq('id', runId)
     .eq('user_id', userRow.id)

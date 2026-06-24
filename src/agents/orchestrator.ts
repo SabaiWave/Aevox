@@ -3,6 +3,7 @@ import { ScriptAgent } from '@/agents/script'
 import { VoiceAgent } from '@/agents/voice'
 import { PublishAgent } from '@/agents/publish'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { checkVoiceQuota } from '@/lib/quota'
 import type {
   AgentResult,
   ChannelConfig,
@@ -123,7 +124,7 @@ export async function runPipeline(
   config: ChannelConfig,
   oauthToken: string,
   onEvent?: (event: SSEEvent) => void,
-  opts?: { isDryRun?: boolean },
+  opts?: { isDryRun?: boolean; userTier?: string },
 ): Promise<PipelineResult> {
   const startMs = Date.now()
 
@@ -217,6 +218,41 @@ export async function runPipeline(
     onEvent?.({ type: 'stage_complete', stage: 'script', state: 'complete', data: scriptResult, timestamp: new Date().toISOString() })
 
     // ── Stage 3: Voice ─────────────────────────────────────────────────────
+    if (!opts?.userTier) {
+      console.warn('[orchestrator] userTier not provided — defaulting to unlimited (pro). Verify caller passes tier.')
+    }
+    const voiceQuota = await checkVoiceQuota(config.userId, opts?.userTier ?? 'pro')
+    if (!voiceQuota.allowed) {
+      onEvent?.({ type: 'pipeline_error', message: 'ElevenLabs character quota exceeded for this billing period', timestamp: new Date().toISOString() })
+      const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null)
+      const totalDurationMs = Date.now() - startMs
+
+      await writePipelineRun({
+        runId,
+        topic,
+        config,
+        status: 'failed',
+        researchResult,
+        scriptResult,
+        voiceResult: null,
+        publishResult: null,
+        degradedContext,
+        isDryRun: opts?.isDryRun,
+      })
+
+      onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
+      return {
+        runId,
+        status: 'failed',
+        research: researchResult,
+        script: scriptResult,
+        voice: null,
+        publish: null,
+        degradedContext,
+        totalDurationMs,
+      }
+    }
+
     onEvent?.({ type: 'stage_start', stage: 'voice', state: 'running', timestamp: new Date().toISOString() })
     voiceResult = await voice.run(scriptResult.data, config, runId, agentOpts)
 

@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
-import { LayoutDashboard, Settings } from 'lucide-react'
+import { LayoutDashboard, Settings, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/upgrade', label: 'Upgrade', icon: Zap },
   { href: '/configs', label: 'Configs', icon: Settings },
 ]
 

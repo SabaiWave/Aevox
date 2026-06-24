@@ -64,11 +64,37 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseServerClient()
   const { data: user } = await supabase
     .from('users')
-    .select('id')
+    .select('id, tier')
     .eq('clerk_id', userId)
     .single()
   if (!user) return Response.json({ error: 'User not found' }, { status: 404 })
   const userUuid = user.id
+  const tier: string = user.tier ?? 'free'
+
+  // ── 3a. Quota check (non-dry-run, non-pro only) ───────────────────────────
+  const TIER_CAPS: Record<string, number> = { free: 2, starter: 8 }
+  const cap = TIER_CAPS[tier]  // undefined for pro → no quota
+
+  if (!dryRun && cap !== undefined) {
+    const monthStart = new Date()
+    monthStart.setUTCDate(1)
+    monthStart.setUTCHours(0, 0, 0, 0)
+
+    const { count } = await supabase
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userUuid)
+      .eq('is_dry_run', false)
+      .gte('created_at', monthStart.toISOString())
+
+    const videosUsed = count ?? 0
+    if (videosUsed >= cap) {
+      return Response.json(
+        { error: 'quota_exceeded', code: 'QUOTA_EXCEEDED', tier, videosUsed, videosLimit: cap },
+        { status: 402 },
+      )
+    }
+  }
 
   // ── 4. Fetch config from Supabase (scoped to this user) ───────────────────
   const { data: row, error: fetchError } = await supabase
@@ -134,7 +160,7 @@ export async function POST(req: NextRequest) {
     if (event.type === 'pipeline_done' || event.type === 'pipeline_error') {
       markRunDone(runId)
     }
-  }, { isDryRun: dryRun }).catch(err => console.error('[api/videos] runPipeline threw:', err))
+  }, { isDryRun: dryRun, userTier: tier }).catch(err => console.error('[api/videos] runPipeline threw:', err))
 
   // ── 10. Return runId immediately ───────────────────────────────────────────
   return Response.json({ data: { runId } }, { status: 200 })

@@ -16,6 +16,7 @@ export function NewRunForm({ configs, isAdmin }: Props) {
   const [isStarting, setIsStarting] = useState(false)
   const [isDryRun, setIsDryRun] = useState(false)
   const [error, setError] = useState('')
+  const [quotaExceeded, setQuotaExceeded] = useState<{ tier: string; videosUsed: number; videosLimit: number } | null>(null)
 
   const inputStyle: React.CSSProperties = {
     background: 'var(--color-surface-2)',
@@ -41,15 +42,23 @@ export function NewRunForm({ configs, isAdmin }: Props) {
     if (!topic.trim() || !selectedConfigId) return
     setIsStarting(true)
     setError('')
+    setQuotaExceeded(null)
     try {
       const res = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim(), ...(isDryRun && { dryRun: true }) }),
       })
-      const json = (await res.json()) as { data?: { runId: string }; error?: string }
+      const json = (await res.json()) as { data?: { runId: string }; error?: string; code?: string; tier?: string; videosUsed?: number; videosLimit?: number }
       if (json.data?.runId) {
         router.push(`/video/${json.data.runId}`)
+      } else if (res.status === 402 || json.code === 'QUOTA_EXCEEDED') {
+        setQuotaExceeded({
+          tier: json.tier ?? 'free',
+          videosUsed: json.videosUsed ?? 0,
+          videosLimit: json.videosLimit ?? 2,
+        })
+        setIsStarting(false)
       } else {
         setError(json.error ?? 'Failed to start generation')
         setIsStarting(false)
@@ -121,6 +130,20 @@ export function NewRunForm({ configs, isAdmin }: Props) {
 
       {error && (
         <p style={{ fontSize: '0.875rem', color: 'var(--color-status-failed)', margin: 0 }}>{error}</p>
+      )}
+
+      {quotaExceeded && (
+        <div style={{
+          background: 'var(--color-surface-1)',
+          border: '1px solid var(--color-border-1)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          fontSize: '0.875rem',
+          color: 'var(--color-text-secondary)',
+        }}>
+          You&apos;ve used all {quotaExceeded.videosUsed} of {quotaExceeded.videosLimit} videos this month on the {quotaExceeded.tier} plan.{' '}
+          <Link href="/upgrade" style={{ color: 'var(--color-primary)' }}>Upgrade</Link>
+        </div>
       )}
 
       <div>

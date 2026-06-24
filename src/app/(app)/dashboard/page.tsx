@@ -31,9 +31,13 @@ export default async function DashboardPage() {
 
   // Resolve Clerk userId → internal uuid
   const { data: userRow } = userId
-    ? await supabase.from('users').select('id').eq('clerk_id', userId).single()
+    ? await supabase.from('users').select('id, tier').eq('clerk_id', userId).single()
     : { data: null }
   const userUuid = userRow?.id ?? null
+  const tier = userRow?.tier ?? 'free'
+
+  // Compute videosLimit based on tier
+  const videosLimit = tier === 'free' ? 2 : tier === 'starter' ? 8 : 0
 
   // Fetch recent pipeline runs (scoped to this user, exclude dry runs)
   const { data: runs, error: runsError } = userUuid
@@ -129,8 +133,8 @@ export default async function DashboardPage() {
       {/* Section 3: Usage widget */}
       <UsageWidget
         videosUsed={videosUsed ?? 0}
-        videosLimit={2}
-        tier="free"
+        videosLimit={videosLimit}
+        tier={tier}
       />
 
       {/* Section 4: Recent runs */}

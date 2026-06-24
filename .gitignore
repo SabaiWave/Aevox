@@ -12,6 +12,7 @@ node_modules/
 /dist
 /out
 tsconfig.tsbuildinfo
+next-env.d.ts
 
 # Supabase CLI
 supabase/.temp/

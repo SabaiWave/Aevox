@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
+import { isAdmin } from '@/lib/is-admin'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import type { ChannelConfig } from '@/types'
 import ConfigEditView from './ConfigEditView'
@@ -13,6 +14,7 @@ export default async function ConfigPage({ params }: { params: Promise<{ id: str
 
   // ── Resolve Clerk userId → internal uuid ──────────────────────────────────
   const { userId } = await auth()
+  const adminUser = await isAdmin()
   const supabase = getSupabaseServerClient()
   const { data: userRow } = userId
     ? await supabase.from('users').select('id').eq('clerk_id', userId).single()
@@ -20,7 +22,7 @@ export default async function ConfigPage({ params }: { params: Promise<{ id: str
   const userUuid = userRow?.id ?? ''
 
   if (isNew) {
-    return <ConfigEditView id="new" config={undefined} />
+    return <ConfigEditView id="new" config={undefined} isAdmin={adminUser} />
   }
 
   // ── Fetch existing config (scoped to authenticated user) ──────────────────
@@ -68,5 +70,5 @@ export default async function ConfigPage({ params }: { params: Promise<{ id: str
     updatedAt: row.updated_at,
   }
 
-  return <ConfigEditView id={id} config={config} />
+  return <ConfigEditView id={id} config={config} isAdmin={adminUser} />
 }

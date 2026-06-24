@@ -25,6 +25,7 @@ interface ChannelConfigFormProps {
   config?: Partial<ChannelConfig>
   onSave: (data: ChannelConfigFormData) => Promise<void>
   isSaving?: boolean
+  isAdmin?: boolean
 }
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
@@ -267,7 +268,7 @@ function SelectInput({ value, onChange, options }: SelectInputProps) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelConfigFormProps) {
+export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }: ChannelConfigFormProps) {
   // ── Field state ──
   const [name, setName] = useState(config?.name ?? '')
   const [niche, setNiche] = useState(config?.niche ?? '')
@@ -332,7 +333,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
   }
 
   function quickFill() {
-    setName('DarkLore')
+    setName(`DarkLore-${Math.random().toString(36).slice(2, 8)}`)
     setNiche('SE Asia folklore')
     setTone('Mysterious, educational')
     setScriptStructure('Hook (30s) → Origin story (2min) → Mythology deep-dive (4min) → Modern sightings (2min) → Outro + CTA (30s)')
@@ -347,7 +348,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving }: ChannelC
   return (
     <form onSubmit={handleSubmit} noValidate style={{ maxWidth: '640px' }}>
 
-      {process.env.NODE_ENV === 'development' && (
+      {isAdmin && (
         <div style={{ marginBottom: '1rem' }}>
           <button
             type="button"

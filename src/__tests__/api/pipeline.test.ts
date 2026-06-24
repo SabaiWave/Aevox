@@ -33,9 +33,17 @@ jest.mock('@/lib/youtube-token-refresh', () => ({
   getValidYouTubeToken: jest.fn().mockResolvedValue({ accessToken: '', connected: false }),
 }))
 
+jest.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: jest.fn().mockReturnValue({ limited: false, retryAfterSeconds: 0 }),
+}))
+
+jest.mock('@/lib/is-admin', () => ({
+  isAdmin: jest.fn().mockResolvedValue(false),
+}))
+
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
-import { POST } from '@/app/api/pipeline/route'
+import { POST } from '@/app/api/videos/route'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,7 +63,7 @@ function makeRequest(body: unknown): NextRequest {
 // Build a Supabase mock chain for the happy-path sequence:
 // 1. from('users').select('id').eq('clerk_id', ...).single()  → { data: { id: USER_UUID } }
 // 2. from('channel_configs').select(...).eq('id', ...).eq('user_id', ...).single() → { data: row }
-// 3. from('pipeline_runs').insert({...}) → { error: null }
+// 3. from('videos').insert({...}) → { error: null }
 function setupHappyPathMocks(): void {
   const dbRow = {
     id: VALID_CONFIG_UUID,
@@ -98,7 +106,7 @@ function setupHappyPathMocks(): void {
         }),
       }
     }
-    if (table === 'pipeline_runs') {
+    if (table === 'videos') {
       return {
         insert: jest.fn().mockResolvedValue({ error: null }),
       }
@@ -365,7 +373,7 @@ describe('POST /api/pipeline', () => {
             }),
           }
         }
-        if (table === 'pipeline_runs') {
+        if (table === 'videos') {
           return { insert: mockInsertCapture }
         }
         return {}
@@ -442,7 +450,7 @@ describe('POST /api/pipeline', () => {
             }),
           }
         }
-        if (table === 'pipeline_runs') {
+        if (table === 'videos') {
           return {
             insert: jest.fn().mockResolvedValue({ error: { message: 'DB constraint violation' } }),
           }
@@ -454,7 +462,7 @@ describe('POST /api/pipeline', () => {
 
       expect(res.status).toBe(500)
       const body = await res.json()
-      expect(body.error).toBe('Failed to create pipeline run')
+      expect(body.error).toBe('Failed to create video')
     })
   })
 })

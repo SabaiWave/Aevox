@@ -56,7 +56,7 @@ describe('VoiceAgent', () => {
       })
     })
 
-    it('returns status success with audioUrl (Supabase upload happens)', async () => {
+    it('returns status success with audioUrl (skips Supabase upload)', async () => {
       const agent = new VoiceAgent()
       const result = await agent.run(SCRIPT, validVoiceConfig, RUN_ID)
 
@@ -64,7 +64,7 @@ describe('VoiceAgent', () => {
       expect(result.data).not.toBeNull()
       expect(typeof result.data!.audioUrl).toBe('string')
       expect(result.data!.audioUrl.length).toBeGreaterThan(0)
-      expect(mockUpload).toHaveBeenCalledTimes(1)
+      expect(mockUpload).not.toHaveBeenCalled()
     })
 
     it('sets durationMs on result', async () => {

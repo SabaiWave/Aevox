@@ -35,40 +35,31 @@ export default async function DashboardPage() {
     : { data: null }
   const userUuid = userRow?.id ?? null
 
-  // Fetch recent pipeline runs (scoped to this user)
+  // Fetch recent pipeline runs (scoped to this user, exclude dry runs)
   const { data: runs, error: runsError } = userUuid
     ? await supabase
-        .from('pipeline_runs')
+        .from('videos')
         .select('id, topic, status, config_id, created_at, updated_at')
         .eq('user_id', userUuid)
+        .eq('is_dry_run', false)
         .order('created_at', { ascending: false })
         .limit(10)
     : { data: [], error: null }
 
   if (runsError) console.error('[Dashboard] Failed to fetch runs:', runsError.message)
 
-  // Fetch usage stats for this month (scoped to this user)
+  // Fetch usage stats for this month (scoped to this user, exclude dry runs)
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
   startOfMonth.setHours(0, 0, 0, 0)
 
-  const { data: usageLogs } = userUuid
-    ? await supabase
-        .from('usage_logs')
-        .select('chars_used')
-        .eq('user_id', userUuid)
-        .gte('created_at', startOfMonth.toISOString())
-    : { data: [] }
-
-  const charsUsed = (usageLogs ?? []).reduce(
-    (sum, row) => sum + (row.chars_used ?? 0),
-    0
-  )
   const { count: videosUsed } = await supabase
-    .from('pipeline_runs')
+    .from('videos')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userUuid)
     .eq('status', 'complete')
+    .eq('is_dry_run', false)
+    .gte('created_at', startOfMonth.toISOString())
 
   return (
     <div
@@ -101,7 +92,7 @@ export default async function DashboardPage() {
             marginBottom: 0,
           }}
         >
-          Your recent pipeline runs
+          Your recent videos
         </p>
       </div>
 
@@ -117,9 +108,9 @@ export default async function DashboardPage() {
         {/* YouTube connection badge */}
         <YouTubeConnectionBadge />
 
-        {/* New Run button */}
+        {/* New Video button */}
         <Link
-          href="/pipeline/new"
+          href="/video/new"
           style={{
             display: 'inline-block',
             padding: '8px 16px',
@@ -131,14 +122,12 @@ export default async function DashboardPage() {
             textDecoration: 'none',
           }}
         >
-          New Run
+          New Video
         </Link>
       </div>
 
       {/* Section 3: Usage widget */}
       <UsageWidget
-        charsUsed={charsUsed}
-        charsLimit={50000}
         videosUsed={videosUsed ?? 0}
         videosLimit={2}
         tier="free"
@@ -155,7 +144,7 @@ export default async function DashboardPage() {
             marginBottom: '1rem',
           }}
         >
-          Recent Runs
+          Recent Videos
         </h2>
 
         {!runs || runs.length === 0 ? (
@@ -181,7 +170,7 @@ export default async function DashboardPage() {
                 margin: 0,
               }}
             >
-              No pipeline runs yet
+              No videos yet
             </p>
             <p
               style={{
@@ -190,10 +179,10 @@ export default async function DashboardPage() {
                 margin: 0,
               }}
             >
-              Start your first run to see results here.
+              Generate your first video to see results here.
             </p>
             <Link
-              href="/pipeline/new"
+              href="/video/new"
               style={{
                 marginTop: '0.75rem',
                 display: 'inline-block',
@@ -206,7 +195,7 @@ export default async function DashboardPage() {
                 textDecoration: 'none',
               }}
             >
-              New Run
+              New Video
             </Link>
           </div>
         ) : (
@@ -215,7 +204,7 @@ export default async function DashboardPage() {
             {runs.map((run) => (
               <Link
                 key={run.id}
-                href={`/pipeline/${run.id}`}
+                href={`/video/${run.id}`}
                 style={{ textDecoration: 'none' }}
               >
                 <div

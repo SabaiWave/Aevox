@@ -1,15 +1,6 @@
 interface UsageWidgetProps {
-  charsUsed: number
-  charsLimit: number
   videosUsed: number
   videosLimit: number
-  tier: string
-}
-
-interface MeterProps {
-  label: string
-  used: number
-  limit: number
   tier: string
 }
 
@@ -19,47 +10,29 @@ function getMeterFillColor(pct: number): string {
   return 'var(--color-primary)'
 }
 
-function UsageMeter({ label, used, limit, tier }: MeterProps) {
-  const pct = limit > 0 ? Math.min(used / limit, 1) : 0
+export function UsageWidget({ videosUsed, videosLimit, tier }: UsageWidgetProps) {
+  const pct = videosLimit > 0 ? Math.min(videosUsed / videosLimit, 1) : 0
   const fillColor = getMeterFillColor(pct)
-  const fillWidth = `${(pct * 100).toFixed(1)}%`
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-      {/* Tier badge */}
-      <span
-        style={{
-          fontSize: '0.75rem',
-          color: 'var(--color-text-tertiary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-          fontWeight: 500,
-        }}
-      >
-        {tier}
-      </span>
-
-      {/* Label + values row */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-        }}
-      >
-        <span
-          style={{
-            fontSize: '0.875rem',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          {label}
+    <div
+      style={{
+        backgroundColor: 'var(--color-surface-1)',
+        border: '1px solid var(--color-border-1)',
+        borderRadius: '8px',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+      }}
+    >
+      {/* Label row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+          Videos this month
         </span>
-        <span
-          className="font-mono text-sm"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          {used.toLocaleString()} / {limit.toLocaleString()}
+        <span className="font-mono" style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
+          {videosUsed} / {videosLimit}
         </span>
       </div>
 
@@ -75,48 +48,18 @@ function UsageMeter({ label, used, limit, tier }: MeterProps) {
         <div
           style={{
             height: '100%',
-            width: fillWidth,
+            width: `${(pct * 100).toFixed(1)}%`,
             backgroundColor: fillColor,
             borderRadius: '2px',
             transition: 'width 0.3s ease, background-color 0.3s ease',
           }}
         />
       </div>
-    </div>
-  )
-}
 
-export function UsageWidget({
-  charsUsed,
-  charsLimit,
-  videosUsed,
-  videosLimit,
-  tier,
-}: UsageWidgetProps) {
-  return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-surface-1)',
-        border: '1px solid var(--color-border-1)',
-        borderRadius: '8px',
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-      }}
-    >
-      <UsageMeter
-        label="ElevenLabs characters"
-        used={charsUsed}
-        limit={charsLimit}
-        tier={tier}
-      />
-      <UsageMeter
-        label="Videos this month"
-        used={videosUsed}
-        limit={videosLimit}
-        tier={tier}
-      />
+      {/* Plan label */}
+      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', textTransform: 'capitalize' }}>
+        {tier} plan
+      </span>
     </div>
   )
 }

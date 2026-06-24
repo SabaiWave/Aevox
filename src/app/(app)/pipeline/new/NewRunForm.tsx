@@ -6,13 +6,15 @@ import Link from 'next/link'
 
 interface Props {
   configs: { id: string; name: string }[]
+  isAdmin?: boolean
 }
 
-export function NewRunForm({ configs }: Props) {
+export function NewRunForm({ configs, isAdmin }: Props) {
   const router = useRouter()
   const [selectedConfigId, setSelectedConfigId] = useState(configs[0]?.id ?? '')
   const [topic, setTopic] = useState('')
   const [isStarting, setIsStarting] = useState(false)
+  const [isDryRun, setIsDryRun] = useState(false)
   const [error, setError] = useState('')
 
   const inputStyle: React.CSSProperties = {
@@ -43,17 +45,17 @@ export function NewRunForm({ configs }: Props) {
       const res = await fetch('/api/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim() }),
+        body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim(), ...(isDryRun && { dryRun: true }) }),
       })
       const json = (await res.json()) as { data?: { runId: string }; error?: string }
       if (json.data?.runId) {
         router.push(`/pipeline/${json.data.runId}`)
       } else {
-        setError(json.error ?? 'Failed to start run')
+        setError(json.error ?? 'Failed to start generation')
         setIsStarting(false)
       }
     } catch {
-      setError('Failed to start run')
+      setError('Failed to start generation')
       setIsStarting(false)
     }
   }
@@ -68,8 +70,8 @@ export function NewRunForm({ configs }: Props) {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {process.env.NODE_ENV === 'development' && (
-        <div>
+      {isAdmin && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => { setSelectedConfigId(configs[0]?.id ?? ''); setTopic('The Pontianak: jungle ghost of SE Asia') }}
@@ -77,6 +79,15 @@ export function NewRunForm({ configs }: Props) {
           >
             ⚡ Quick fill
           </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', color: isDryRun ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
+            <input
+              type="checkbox"
+              checked={isDryRun}
+              onChange={e => setIsDryRun(e.target.checked)}
+              style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+            />
+            Dry run
+          </label>
         </div>
       )}
       <div>
@@ -127,7 +138,7 @@ export function NewRunForm({ configs }: Props) {
             opacity: isStarting || !topic.trim() ? 0.6 : 1,
           }}
         >
-          {isStarting ? 'Starting…' : 'Start Run'}
+          {isStarting ? 'Generating…' : 'Generate'}
         </button>
       </div>
     </form>

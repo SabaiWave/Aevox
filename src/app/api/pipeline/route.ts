@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
+import { isAdmin } from '@/lib/is-admin'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { runPipeline } from '@/agents/orchestrator'
 import { createRunStore, pushEvent, markRunDone } from '@/lib/pipeline-events'
@@ -15,6 +16,7 @@ const schema = z.object({
     .min(1)
     .max(500)
     .transform(s => s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')),
+  dryRun: z.boolean().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -47,7 +49,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { configId, topic } = parsed.data
+  const { configId, topic, dryRun } = parsed.data
+
+  // ── 1a. Validate dryRun — admin only ──────────────────────────────────────
+  if (dryRun) {
+    const adminOk = await isAdmin()
+    if (!adminOk) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   // ── 2. Generate runId ──────────────────────────────────────────────────────
   const runId = crypto.randomUUID()
@@ -126,7 +134,7 @@ export async function POST(req: NextRequest) {
     if (event.type === 'pipeline_done' || event.type === 'pipeline_error') {
       markRunDone(runId)
     }
-  }).catch(err => console.error('[api/pipeline] runPipeline threw:', err))
+  }, { isDryRun: dryRun }).catch(err => console.error('[api/pipeline] runPipeline threw:', err))
 
   // ── 10. Return runId immediately ───────────────────────────────────────────
   return Response.json({ data: { runId } }, { status: 200 })

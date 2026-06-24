@@ -95,12 +95,14 @@ export class PublishAgent {
     audioUrl: string,
     topic: string,
     config: ChannelConfig,
-    oauthToken: string
+    oauthToken: string,
+    opts?: { dryRun?: boolean },
   ): Promise<AgentResult<PublishOutput>> {
     const start = Date.now()
+    const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     try {
-      if (process.env.DRY_RUN === 'true') {
+      if (isDryRun) {
         return {
           status: 'success',
           data: dryRunPublishOutput,

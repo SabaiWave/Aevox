@@ -41,6 +41,11 @@ jest.mock('@/lib/is-admin', () => ({
   isAdmin: jest.fn().mockResolvedValue(false),
 }))
 
+const mockCheckVoiceQuota = jest.fn()
+jest.mock('@/lib/quota', () => ({
+  checkVoiceQuota: (...args: unknown[]) => mockCheckVoiceQuota(...args),
+}))
+
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
 import { POST } from '@/app/api/videos/route'
@@ -131,6 +136,7 @@ describe('POST /api/pipeline', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockCheckVoiceQuota.mockResolvedValue({ allowed: true, used: 0, limit: 10_000 })
   })
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -439,6 +445,59 @@ describe('POST /api/pipeline', () => {
       await POST(makeRequest({ configId: VALID_CONFIG_UUID, topic: VALID_TOPIC }))
 
       expect(runPipeline).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // ── Quota gating ─────────────────────────────────────────────────────────
+
+  describe('quota gating', () => {
+    it('returns 402 with VOICE_QUOTA_EXCEEDED when voice quota is exhausted', async () => {
+      mockAuth.mockResolvedValue({ userId: CLERK_USER_ID })
+      mockCheckVoiceQuota.mockResolvedValue({ allowed: false, used: 10_000, limit: 10_000 })
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'users') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
+              }),
+            }),
+          }
+        }
+        if (table === 'videos') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const res = await POST(makeRequest({ configId: VALID_CONFIG_UUID, topic: VALID_TOPIC }))
+
+      expect(res.status).toBe(402)
+      const body = await res.json()
+      expect(body.code).toBe('VOICE_QUOTA_EXCEEDED')
+      expect(body.charsUsed).toBe(10_000)
+    })
+
+    it('skips voice quota pre-check for dry runs', async () => {
+      mockAuth.mockResolvedValue({ userId: CLERK_USER_ID })
+      mockCheckVoiceQuota.mockResolvedValue({ allowed: false, used: 10_000, limit: 10_000 })
+      const { isAdmin: mockIsAdmin } = jest.requireMock('@/lib/is-admin')
+      mockIsAdmin.mockResolvedValue(true)
+      setupHappyPathMocks()
+
+      const res = await POST(makeRequest({ configId: VALID_CONFIG_UUID, topic: VALID_TOPIC, dryRun: true }))
+
+      expect(res.status).toBe(200)
+      expect(mockCheckVoiceQuota).not.toHaveBeenCalled()
     })
   })
 

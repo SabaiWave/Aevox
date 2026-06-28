@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { runPipeline } from '@/agents/orchestrator'
 import { createRunStore, pushEvent, markRunDone } from '@/lib/pipeline-events'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { checkVoiceQuota } from '@/lib/quota'
 import { getValidYouTubeToken } from '@/lib/youtube-token-refresh'
 import type { ChannelConfig, SSEEvent } from '@/types'
 
@@ -91,6 +92,17 @@ export async function POST(req: NextRequest) {
     if (videosUsed >= cap) {
       return Response.json(
         { error: 'quota_exceeded', code: 'QUOTA_EXCEEDED', tier, videosUsed, videosLimit: cap },
+        { status: 402 },
+      )
+    }
+  }
+
+  // ── 3b. Voice quota pre-check ─────────────────────────────────────────────
+  if (!dryRun) {
+    const voiceQuota = await checkVoiceQuota(userUuid, tier)
+    if (!voiceQuota.allowed) {
+      return Response.json(
+        { error: 'quota_exceeded', code: 'VOICE_QUOTA_EXCEEDED', tier, charsUsed: voiceQuota.used, charsLimit: voiceQuota.limit ?? null },
         { status: 402 },
       )
     }

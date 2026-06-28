@@ -9,7 +9,7 @@ export class VoiceAgent {
     opts?: { dryRun?: boolean },
   ): Promise<AgentResult<VoiceOutput>> {
     const start = Date.now()
-    const storagePath = `pipeline/${runId}/audio.mp3`
+    const storagePath = `video/${runId}/audio.mp3`
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     try {
@@ -92,7 +92,7 @@ export class VoiceAgent {
       const supabase = getSupabaseServerClient()
 
       const { error: uploadError } = await supabase.storage
-        .from('audio')
+        .from('media')
         .upload(storagePath, audioBuffer, {
           contentType: 'audio/mpeg',
           upsert: true,
@@ -108,7 +108,7 @@ export class VoiceAgent {
       }
 
       const { data: urlData } = supabase.storage
-        .from('audio')
+        .from('media')
         .getPublicUrl(storagePath)
 
       return {

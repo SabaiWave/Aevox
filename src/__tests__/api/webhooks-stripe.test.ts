@@ -102,10 +102,11 @@ describe('POST /api/webhooks/stripe', () => {
     expect(body.received).toBe(true)
   })
 
-  it('checkout.session.completed updates stripe_customer_id', async () => {
+  it('checkout.session.completed updates stripe_customer_id and tier', async () => {
     const session = {
       customer: 'cus_abc123',
       metadata: { clerkUserId: 'user_clerk_abc' },
+      // no subscription — tier defaults to 'free'
     }
     const event = makeEvent('checkout.session.completed', session)
     mockConstructEvent.mockReturnValue(event)
@@ -115,7 +116,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(res.status).toBe(200)
     expect(mockFrom).toHaveBeenCalledWith('users')
-    expect(mockUpdate).toHaveBeenCalledWith({ stripe_customer_id: 'cus_abc123' })
+    expect(mockUpdate).toHaveBeenCalledWith({ stripe_customer_id: 'cus_abc123', tier: 'free' })
     expect(mockEq).toHaveBeenCalledWith('clerk_id', 'user_clerk_abc')
   })
 

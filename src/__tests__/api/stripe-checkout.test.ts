@@ -78,7 +78,7 @@ describe('POST /api/stripe/checkout', () => {
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue({ userId: null })
 
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(401)
@@ -89,7 +89,7 @@ describe('POST /api/stripe/checkout', () => {
   it('returns 429 when rate limited', async () => {
     mockCheckRateLimit.mockReturnValue({ limited: true, retryAfterSeconds: 45 })
 
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(429)
@@ -111,7 +111,7 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.error).toBe('Invalid JSON')
   })
 
-  it('returns 400 for missing priceId', async () => {
+  it('returns 400 for missing plan', async () => {
     const req = makeRequest({})
     const res = await POST(req as never)
 
@@ -121,19 +121,19 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.details).toBeDefined()
   })
 
-  it('returns 400 for unknown priceId not in allowlist', async () => {
-    const req = makeRequest({ priceId: 'price_unknown_999' })
+  it('returns 400 for unknown plan slug', async () => {
+    const req = makeRequest({ plan: 'enterprise' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(400)
     const body = await res.json()
-    expect(body.error).toBe('Invalid price ID')
+    expect(body.error).toBe('Invalid request')
   })
 
   it('returns 404 when user not found in Supabase', async () => {
     mockSingle.mockResolvedValue({ data: null })
 
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(404)
@@ -144,7 +144,7 @@ describe('POST /api/stripe/checkout', () => {
   it('returns 500 when Stripe throws an error', async () => {
     mockCreate.mockRejectedValue(new Error('Stripe network error'))
 
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(500)
@@ -155,7 +155,7 @@ describe('POST /api/stripe/checkout', () => {
   it('returns 500 when Stripe session url is null', async () => {
     mockCreate.mockResolvedValue({ url: null })
 
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(500)
@@ -163,8 +163,8 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.error).toBe('Failed to create checkout session')
   })
 
-  it('returns 200 with { data: { url } } on success with starter price', async () => {
-    const req = makeRequest({ priceId: 'price_starter_123' })
+  it('returns 200 with { data: { url } } on success with starter plan', async () => {
+    const req = makeRequest({ plan: 'starter' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
@@ -172,8 +172,8 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.data.url).toBe('https://checkout.stripe.com/pay/cs_test_123')
   })
 
-  it('returns 200 with { data: { url } } on success with pro price', async () => {
-    const req = makeRequest({ priceId: 'price_pro_456' })
+  it('returns 200 with { data: { url } } on success with pro plan', async () => {
+    const req = makeRequest({ plan: 'pro' })
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
@@ -181,8 +181,8 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.data.url).toBe('https://checkout.stripe.com/pay/cs_test_123')
   })
 
-  it('calls Stripe with correct session parameters', async () => {
-    const req = makeRequest({ priceId: 'price_starter_123' })
+  it('resolves plan to correct price ID before calling Stripe', async () => {
+    const req = makeRequest({ plan: 'starter' })
     await POST(req as never)
 
     expect(mockCreate).toHaveBeenCalledWith({
@@ -195,8 +195,19 @@ describe('POST /api/stripe/checkout', () => {
     })
   })
 
+  it('resolves pro plan to pro price ID', async () => {
+    const req = makeRequest({ plan: 'pro' })
+    await POST(req as never)
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        line_items: [{ price: 'price_pro_456', quantity: 1 }],
+      }),
+    )
+  })
+
   it('queries Supabase users table by clerk_id', async () => {
-    const req = makeRequest({ priceId: 'price_starter_123' })
+    const req = makeRequest({ plan: 'starter' })
     await POST(req as never)
 
     expect(mockFrom).toHaveBeenCalledWith('users')

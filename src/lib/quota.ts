@@ -29,13 +29,13 @@ export async function checkVoiceQuota(
 ): Promise<QuotaResult> {
   const cap = VOICE_CHAR_CAPS[userTier]
 
-  // Pro (or any unknown tier) — no cap. Warn on unknown to surface typos/bugs.
-  if (cap === undefined) {
-    if (userTier !== 'pro') {
-      console.warn('[quota] Unknown tier passed to checkVoiceQuota — defaulting to unlimited:', userTier)
-    }
+  // Pro — no cap, skip DB entirely.
+  if (userTier === 'pro') {
     return { allowed: true, used: 0, limit: undefined }
   }
+
+  // Unknown tier — fail safe: apply free-tier cap.
+  const effectiveCap = cap ?? VOICE_CHAR_CAPS['free']
 
   try {
     const supabase = getSupabaseServerClient()
@@ -46,22 +46,22 @@ export async function checkVoiceQuota(
 
     const { data, error } = await supabase
       .from('usage_logs')
-      .select('value')
+      .select('chars_used')
       .eq('user_id', userUuid)
       .eq('event_type', 'voice_chars_used')
       .gte('created_at', monthStart)
 
     if (error) {
       console.error('[quota] Supabase error checking voice quota:', error.message)
-      return { allowed: true, used: 0, limit: cap }
+      return { allowed: true, used: 0, limit: effectiveCap }
     }
 
-    const used = (data ?? []).reduce((sum, row) => sum + (Number(row.value) || 0), 0)
-    const allowed = used < cap
+    const used = (data ?? []).reduce((sum, row) => sum + (Number(row.chars_used) || 0), 0)
+    const allowed = used < effectiveCap
 
-    return { allowed, used, limit: cap }
+    return { allowed, used, limit: effectiveCap }
   } catch (err) {
     console.error('[quota] Unexpected error checking voice quota:', err instanceof Error ? err.message : err)
-    return { allowed: true, used: 0, limit: cap }
+    return { allowed: true, used: 0, limit: effectiveCap }
   }
 }

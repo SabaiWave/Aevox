@@ -300,21 +300,25 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
             stage="research"
             result={run.researchResult}
             state={stages[researchIdx]?.state ?? 'pending'}
+            errorMessage={stages[researchIdx]?.errorMessage}
           />
           <AgentResultCard
             stage="script"
             result={run.scriptResult}
             state={stages[scriptIdx]?.state ?? 'pending'}
+            errorMessage={stages[scriptIdx]?.errorMessage}
           />
           <AgentResultCard
             stage="voice"
             result={run.voiceResult}
             state={stages[voiceIdx]?.state ?? 'pending'}
+            errorMessage={stages[voiceIdx]?.errorMessage}
           />
           <AgentResultCard
             stage="publish"
             result={run.publishResult}
             state={stages[publishIdx]?.state ?? 'pending'}
+            errorMessage={stages[publishIdx]?.errorMessage}
           />
         </div>
       </div>

@@ -49,13 +49,22 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      // Retrieve subscription to resolve tier immediately — avoids race with subscription.created
+      let tier: Tier = 'free'
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null
+      if (subscriptionId) {
+        const subscription = await getStripe().subscriptions.retrieve(subscriptionId)
+        const priceId = subscription.items.data[0]?.price?.id ?? ''
+        tier = tierFromPriceId(priceId)
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({ stripe_customer_id: stripeCustomerId })
+        .update({ stripe_customer_id: stripeCustomerId, tier })
         .eq('clerk_id', clerkUserId)
 
       if (error) {
-        console.error('[webhook/stripe] Failed to update stripe_customer_id:', error.message)
+        console.error('[webhook/stripe] Failed to update stripe_customer_id + tier:', error.message)
         return Response.json({ error: 'DB update failed' }, { status: 500 })
       }
       break

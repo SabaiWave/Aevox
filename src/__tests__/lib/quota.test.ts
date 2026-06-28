@@ -17,9 +17,9 @@ const USER_UUID = 'deadbeef-dead-beef-dead-beefdeadbeef'
 
 /**
  * Wires mockFrom to resolve with the given rows (or error) for the
- * usage_logs chain: .select('value').eq(...).eq(...).gte(...)
+ * usage_logs chain: .select('chars_used').eq(...).eq(...).gte(...)
  */
-function wireUsageLogs(rows: Array<{ value: number }> | null, error: { message: string } | null = null) {
+function wireUsageLogs(rows: Array<{ chars_used: number }> | null, error: { message: string } | null = null) {
   const gteChain = jest.fn().mockResolvedValue({ data: rows, error })
   const eqChain2 = jest.fn().mockReturnValue({ gte: gteChain })
   const eqChain1 = jest.fn().mockReturnValue({ eq: eqChain2 })
@@ -43,17 +43,19 @@ describe('checkVoiceQuota', () => {
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
-  it('unknown tier returns allowed immediately without querying DB', async () => {
+  it('unknown tier queries DB and applies free-tier cap (fail safe)', async () => {
+    wireUsageLogs([{ chars_used: 5000 }])
+
     const result = await checkVoiceQuota(USER_UUID, 'enterprise')
 
-    expect(result).toEqual({ allowed: true, used: 0, limit: undefined })
-    expect(mockFrom).not.toHaveBeenCalled()
+    expect(result).toEqual({ allowed: true, used: 5000, limit: 10_000 })
+    expect(mockFrom).toHaveBeenCalled()
   })
 
   // ─── Free tier ────────────────────────────────────────────────────────────
 
   it('free tier under limit returns allowed: true with correct used and limit', async () => {
-    wireUsageLogs([{ value: 5000 }])
+    wireUsageLogs([{ chars_used:5000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -61,7 +63,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('free tier at limit returns allowed: false', async () => {
-    wireUsageLogs([{ value: 10_000 }])
+    wireUsageLogs([{ chars_used:10_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -69,7 +71,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('free tier over limit returns allowed: false', async () => {
-    wireUsageLogs([{ value: 12_000 }])
+    wireUsageLogs([{ chars_used:12_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -79,7 +81,7 @@ describe('checkVoiceQuota', () => {
   // ─── Starter tier ─────────────────────────────────────────────────────────
 
   it('starter tier under limit returns allowed: true with limit 100000', async () => {
-    wireUsageLogs([{ value: 50_000 }])
+    wireUsageLogs([{ chars_used:50_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'starter')
 
@@ -87,7 +89,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('starter tier at limit returns allowed: false', async () => {
-    wireUsageLogs([{ value: 100_000 }])
+    wireUsageLogs([{ chars_used:100_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'starter')
 
@@ -105,7 +107,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('multiple rows are summed correctly', async () => {
-    wireUsageLogs([{ value: 1000 }, { value: 2500 }, { value: 3000 }])
+    wireUsageLogs([{ chars_used:1000 }, { chars_used:2500 }, { chars_used:3000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 

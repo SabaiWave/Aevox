@@ -79,7 +79,7 @@ export function NewRunForm({ configs, isAdmin }: Props) {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {isAdmin && (
+      {(isAdmin || process.env.NODE_ENV === 'development') && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -88,15 +88,17 @@ export function NewRunForm({ configs, isAdmin }: Props) {
           >
             ⚡ Quick fill
           </button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', color: isDryRun ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
-            <input
-              type="checkbox"
-              checked={isDryRun}
-              onChange={e => setIsDryRun(e.target.checked)}
-              style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-            />
-            Dry run
-          </label>
+          {isAdmin && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', color: isDryRun ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
+              <input
+                type="checkbox"
+                checked={isDryRun}
+                onChange={e => setIsDryRun(e.target.checked)}
+                style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+              />
+              Dry run
+            </label>
+          )}
         </div>
       )}
       <div>

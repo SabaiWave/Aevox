@@ -223,7 +223,7 @@ export async function runPipeline(
     }
     const voiceQuota = await checkVoiceQuota(config.userId, opts?.userTier ?? 'pro')
     if (!voiceQuota.allowed) {
-      onEvent?.({ type: 'pipeline_error', message: 'ElevenLabs character quota exceeded for this billing period', timestamp: new Date().toISOString() })
+      onEvent?.({ type: 'pipeline_error', message: 'Voice character quota exceeded for this billing period. Upgrade your plan to continue.', timestamp: new Date().toISOString() })
       const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null)
       const totalDurationMs = Date.now() - startMs
 
@@ -276,7 +276,7 @@ export async function runPipeline(
       publishResult = {
         status: 'failed',
         data: null,
-        error: 'No audio URL available for publish',
+        error: 'Publish skipped — audio generation did not complete.',
       }
     }
 
@@ -412,6 +412,21 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
 
     if (error) {
       console.error('[orchestrator] Supabase write failed:', error.message)
+    }
+
+    if (!args.isDryRun && args.voiceResult?.status === 'success') {
+      const charsUsed = args.voiceResult.data?.charsUsed ?? 0
+      if (charsUsed > 0) {
+        const { error: usageError } = await supabase.from('usage_logs').insert({
+          user_id: args.config.userId,
+          run_id: args.runId,
+          event_type: 'voice_chars_used',
+          chars_used: charsUsed,
+        })
+        if (usageError) {
+          console.error('[orchestrator] Failed to write voice usage log:', usageError.message)
+        }
+      }
     }
   } catch (err) {
     // Supabase failures never propagate — in-memory result is source of truth

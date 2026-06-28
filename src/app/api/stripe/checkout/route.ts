@@ -5,15 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { getStripe } from '@/lib/stripe'
 
-function allowedPriceIds(): string[] {
-  return [
-    process.env.STRIPE_STARTER_PRICE_ID,
-    process.env.STRIPE_PRO_PRICE_ID,
-  ].filter(Boolean) as string[]
-}
-
 const schema = z.object({
-  priceId: z.string().min(1),
+  plan: z.enum(['starter', 'pro']),
 })
 
 export async function POST(req: NextRequest) {
@@ -49,11 +42,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { priceId } = parsed.data
-
-  // ── 2a. Allowlist priceId against known plans ─────────────────────────────
-  if (!allowedPriceIds().includes(priceId)) {
-    return Response.json({ error: 'Invalid price ID' }, { status: 400 })
+  const { plan } = parsed.data
+  const planPriceMap: Record<string, string | undefined> = {
+    starter: process.env.STRIPE_STARTER_PRICE_ID,
+    pro: process.env.STRIPE_PRO_PRICE_ID,
+  }
+  const priceId = planPriceMap[plan]
+  if (!priceId) {
+    return Response.json({ error: 'Plan price not configured' }, { status: 500 })
   }
 
   // ── 3. Look up internal user UUID + email ──────────────────────────────────

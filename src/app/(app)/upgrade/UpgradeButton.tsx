@@ -3,11 +3,11 @@
 import { useState } from 'react'
 
 interface UpgradeButtonProps {
-  priceId: string
+  plan: 'starter' | 'pro'
   label: string
 }
 
-export default function UpgradeButton({ priceId, label }: UpgradeButtonProps) {
+export default function UpgradeButton({ plan, label }: UpgradeButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +19,7 @@ export default function UpgradeButton({ priceId, label }: UpgradeButtonProps) {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ plan }),
       })
 
       const json = await res.json()

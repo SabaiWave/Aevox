@@ -76,20 +76,6 @@ export function PipelineStageTracker({ stages }: PipelineStageTrackerProps) {
               <RunStatusBadge status={info.state} />
             </div>
 
-            {/* Error message */}
-            {info.state === 'failed' && info.errorMessage && (
-              <p
-                style={{
-                  marginTop: '0.25rem',
-                  marginLeft: '0',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-status-failed)',
-                }}
-              >
-                {info.errorMessage}
-              </p>
-            )}
-
             {/* Gap message */}
             {info.state === 'degraded' && info.gapMessage && (
               <p

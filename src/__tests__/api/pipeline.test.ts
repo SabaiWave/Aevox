@@ -90,7 +90,7 @@ function setupHappyPathMocks(): void {
       return {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({ data: { id: USER_UUID }, error: null }),
+            single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
           }),
         }),
       }
@@ -108,6 +108,13 @@ function setupHappyPathMocks(): void {
     }
     if (table === 'videos') {
       return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+            }),
+          }),
+        }),
         insert: jest.fn().mockResolvedValue({ error: null }),
       }
     }
@@ -242,7 +249,7 @@ describe('POST /api/pipeline', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID }, error: null }),
+                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
               }),
             }),
           }
@@ -256,6 +263,18 @@ describe('POST /api/pipeline', () => {
                 }),
               }),
             }),
+          }
+        }
+        if (table === 'videos') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+                }),
+              }),
+            }),
+            insert: jest.fn().mockResolvedValue({ error: null }),
           }
         }
         return {}
@@ -276,7 +295,7 @@ describe('POST /api/pipeline', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID }, error: null }),
+                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
               }),
             }),
           }
@@ -291,6 +310,18 @@ describe('POST /api/pipeline', () => {
                 }),
               }),
             }),
+          }
+        }
+        if (table === 'videos') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+                }),
+              }),
+            }),
+            insert: jest.fn().mockResolvedValue({ error: null }),
           }
         }
         return {}
@@ -336,7 +367,7 @@ describe('POST /api/pipeline', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID }, error: null }),
+                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
               }),
             }),
           }
@@ -374,7 +405,16 @@ describe('POST /api/pipeline', () => {
           }
         }
         if (table === 'videos') {
-          return { insert: mockInsertCapture }
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+                }),
+              }),
+            }),
+            insert: mockInsertCapture,
+          }
         }
         return {}
       })
@@ -413,7 +453,7 @@ describe('POST /api/pipeline', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID }, error: null }),
+                single: jest.fn().mockResolvedValue({ data: { id: USER_UUID, tier: 'free' }, error: null }),
               }),
             }),
           }
@@ -452,6 +492,13 @@ describe('POST /api/pipeline', () => {
         }
         if (table === 'videos') {
           return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+                }),
+              }),
+            }),
             insert: jest.fn().mockResolvedValue({ error: { message: 'DB constraint violation' } }),
           }
         }

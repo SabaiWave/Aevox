@@ -15,6 +15,7 @@ interface AgentResultCardProps {
   stage: PipelineStage
   result: AgentResult<unknown> | null
   state: StageState
+  errorMessage?: string
 }
 
 const STAGE_LABEL_MAP: Record<PipelineStage, string> = {
@@ -120,6 +121,7 @@ function VoiceBody({ data }: { data: VoiceOutput }) {
       <div
         style={{
           display: 'flex',
+          alignItems: 'center',
           gap: '1rem',
           fontSize: '0.8125rem',
           color: 'var(--color-text-tertiary)',
@@ -133,6 +135,18 @@ function VoiceBody({ data }: { data: VoiceOutput }) {
           Chars:{' '}
           <span className="font-mono">{data.charsUsed.toLocaleString()}</span>
         </span>
+        <a
+          href={data.audioUrl}
+          download
+          style={{
+            marginLeft: 'auto',
+            color: 'var(--color-primary)',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}
+        >
+          Download MP3
+        </a>
       </div>
     </div>
   )
@@ -191,8 +205,12 @@ function ResultBody({
   }
 }
 
-export function AgentResultCard({ stage, result, state }: AgentResultCardProps) {
-  const [isExpanded, setIsExpanded] = useState(state !== 'pending')
+export function AgentResultCard({ stage, result, state, errorMessage }: AgentResultCardProps) {
+  const hasData = !!result?.data
+  const resolvedError = result?.error ?? errorMessage
+  const hasError = state === 'failed' && !!resolvedError
+  const canExpand = hasData || hasError
+  const [isExpanded, setIsExpanded] = useState(state !== 'pending' && canExpand)
 
   return (
     <div
@@ -204,45 +222,48 @@ export function AgentResultCard({ stage, result, state }: AgentResultCardProps) 
       }}
     >
       {/* Header */}
-      <button
-        onClick={() => setIsExpanded((prev) => !prev)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.875rem 1rem',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <span
+      {canExpand ? (
+        <button
+          onClick={() => setIsExpanded((prev) => !prev)}
           style={{
-            fontSize: '1.125rem',
-            fontWeight: 500,
-            color: 'var(--color-text-primary)',
-            flex: 1,
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '0.875rem 1rem',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
           }}
         >
-          {STAGE_LABEL_MAP[stage]}
-        </span>
-        <RunStatusBadge status={state} />
-        <span
+          <span style={{ fontSize: '1.125rem', fontWeight: 500, color: 'var(--color-text-primary)', flex: 1 }}>
+            {STAGE_LABEL_MAP[stage]}
+          </span>
+          <RunStatusBadge status={state} />
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginLeft: '0.25rem' }} aria-hidden="true">
+            {isExpanded ? '▼' : '▶'}
+          </span>
+        </button>
+      ) : (
+        <div
           style={{
-            fontSize: '0.75rem',
-            color: 'var(--color-text-tertiary)',
-            marginLeft: '0.25rem',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '0.875rem 1rem',
           }}
-          aria-hidden="true"
         >
-          {isExpanded ? '▼' : '▶'}
-        </span>
-      </button>
+          <span style={{ fontSize: '1.125rem', fontWeight: 500, color: 'var(--color-text-primary)', flex: 1 }}>
+            {STAGE_LABEL_MAP[stage]}
+          </span>
+          <RunStatusBadge status={state} />
+        </div>
+      )}
 
       {/* Body */}
-      {isExpanded && (
+      {isExpanded && canExpand && (
         <div
           style={{
             backgroundColor: 'var(--color-surface-2)',
@@ -252,7 +273,13 @@ export function AgentResultCard({ stage, result, state }: AgentResultCardProps) 
             padding: '0.75rem',
           }}
         >
-          <ResultBody stage={stage} result={result} />
+          {hasData ? (
+            <ResultBody stage={stage} result={result} />
+          ) : (
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-status-failed)', margin: 0 }}>
+              {resolvedError ?? 'Stage failed'}
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -151,6 +151,38 @@ describe('VoiceAgent', () => {
       expect(result.data).toBeNull()
     })
 
+    it('returns quota exceeded message when ElevenLabs returns 401 with quota_exceeded code', async () => {
+      process.env.ELEVENLABS_API_KEY = 'test-key'
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => JSON.stringify({ detail: { code: 'quota_exceeded', message: 'exceeds quota' } }),
+        statusText: 'Unauthorized',
+      } as Response)
+
+      const agent = new VoiceAgent()
+      const result = await agent.run(SCRIPT, validVoiceConfig, RUN_ID)
+
+      expect(result.status).toBe('failed')
+      expect(result.error).toBe('Voice character quota exceeded for this billing period. Upgrade your plan to continue.')
+    })
+
+    it('returns quota exceeded message when ElevenLabs returns 402', async () => {
+      process.env.ELEVENLABS_API_KEY = 'test-key'
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 402,
+        text: async () => 'Payment Required',
+        statusText: 'Payment Required',
+      } as Response)
+
+      const agent = new VoiceAgent()
+      const result = await agent.run(SCRIPT, validVoiceConfig, RUN_ID)
+
+      expect(result.status).toBe('failed')
+      expect(result.error).toBe('Voice character quota exceeded for this billing period. Upgrade your plan to continue.')
+    })
+
     it('returns status failed when Supabase upload returns an error', async () => {
       process.env.ELEVENLABS_API_KEY = 'test-key'
       global.fetch = jest.fn().mockResolvedValue({

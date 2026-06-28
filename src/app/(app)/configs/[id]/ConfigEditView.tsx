@@ -21,10 +21,12 @@ const headerStyle: React.CSSProperties = {
 }
 
 const backLinkStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  color: 'var(--color-accent)',
+  fontSize: '0.8125rem',
+  color: 'var(--color-text-tertiary)',
   textDecoration: 'none',
-  display: 'inline-block',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.25rem',
   marginBottom: '0.75rem',
 }
 
@@ -81,7 +83,7 @@ export default function ConfigEditView({ config, id, isAdmin }: ConfigEditViewPr
     <div>
       <div style={headerStyle}>
         <Link href="/configs" style={backLinkStyle}>
-          &larr; All Configs
+          ‹ All Configs
         </Link>
         <h1 style={h1Style}>{pageTitle}</h1>
       </div>

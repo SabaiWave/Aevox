@@ -2,6 +2,10 @@
 
 import { useState, KeyboardEvent } from 'react'
 import type { ChannelConfig } from '@/types'
+import VoicePicker from '@/components/VoicePicker'
+import ChannelTemplatePicker from '@/components/ChannelTemplatePicker'
+import { VOICES, DEFAULT_VOICE_ID } from '@/lib/voices'
+import { YOUTUBE_CATEGORIES, type ChannelTemplate } from '@/lib/channel-templates'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -276,8 +280,8 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
   const [scriptStructure, setScriptStructure] = useState(config?.scriptStructure ?? '')
   const [targetDurationMin, setTargetDurationMin] = useState(config?.targetDurationMin ?? 10)
   const [forbiddenTopics, setForbiddenTopics] = useState<string[]>(config?.forbiddenTopics ?? [])
-  const [voiceId, setVoiceId] = useState(config?.voiceId ?? '')
-  const [voiceModel, setVoiceModel] = useState(config?.voiceModel ?? 'eleven_multilingual_v2')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [voiceId, setVoiceId] = useState(config?.voiceId ?? DEFAULT_VOICE_ID)
   const [ytTitleTemplate, setYtTitleTemplate] = useState(config?.ytTitleTemplate ?? '')
   const [ytDescriptionTemplate, setYtDescriptionTemplate] = useState(config?.ytDescriptionTemplate ?? '')
   const [ytTags, setYtTags] = useState<string[]>(config?.ytTags ?? [])
@@ -290,6 +294,17 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
   const [errors, setErrors] = useState<Partial<Record<'name' | 'niche' | 'tone' | 'scriptStructure' | 'voiceId', string>>>({})
   const [formError, setFormError] = useState<string>('')
 
+  // ── Template fill ──
+  function handleTemplateSelect(template: ChannelTemplate) {
+    setSelectedTemplateId(template.id)
+    setNiche(template.niche)
+    setTone(template.tone)
+    setScriptStructure(template.scriptStructure)
+    setVoiceId(template.voiceId)
+    setYtCategoryId(template.ytCategoryId)
+    setErrors({})
+  }
+
   // ── Submit ──
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -300,7 +315,7 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
     if (!niche.trim()) newErrors.niche = 'Niche is required'
     if (!tone.trim()) newErrors.tone = 'Tone is required'
     if (!scriptStructure.trim()) newErrors.scriptStructure = 'Script structure is required'
-    if (!voiceId.trim()) newErrors.voiceId = 'Voice ID is required'
+    if (!voiceId) newErrors.voiceId = 'Voice is required'
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -316,8 +331,8 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
       scriptStructure: scriptStructure.trim(),
       targetDurationMin,
       forbiddenTopics,
-      voiceId: voiceId.trim(),
-      voiceModel: voiceModel.trim(),
+      voiceId,
+      voiceModel: VOICES.find((v) => v.voiceId === voiceId)?.voiceModel ?? 'eleven_multilingual_v2',
       ytTitleTemplate: ytTitleTemplate.trim(),
       ytDescriptionTemplate: ytDescriptionTemplate.trim(),
       ytTags,
@@ -333,14 +348,13 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
   }
 
   function quickFill() {
-    setName(`DarkLore-${Math.random().toString(36).slice(2, 8)}`)
-    setNiche('SE Asia folklore')
+    setName(`Channel-${Math.random().toString(36).slice(2, 8)}`)
+    setNiche('Documentary storytelling')
     setTone('Mysterious, educational')
-    setScriptStructure('Hook (30s) → Origin story (2min) → Mythology deep-dive (4min) → Modern sightings (2min) → Outro + CTA (30s)')
-    setVoiceId('21m00Tcm4TlvDq8ikWAM')
-    setVoiceModel('eleven_multilingual_v2')
-    setYtTitleTemplate('{{topic}} | DarkLore')
-    setYtDescriptionTemplate('Deep dive into {{topic}}. Subscribe for more SE Asia folklore.')
+    setScriptStructure('Hook (30s) → Background (2min) → Deep dive (4min) → Implications (2min) → Outro + CTA (30s)')
+    setVoiceId(DEFAULT_VOICE_ID)
+    setYtTitleTemplate('{{topic}}')
+    setYtDescriptionTemplate('Deep dive into {{topic}}. Subscribe for more.')
     setYtPrivacy('private')
     setErrors({})
   }
@@ -359,6 +373,14 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
           </button>
         </div>
       )}
+
+      {/* ── Template Picker ── */}
+      <section style={{ marginBottom: '1.5rem' }}>
+        <p style={sectionHeadingStyle}>Start from a template</p>
+        <ChannelTemplatePicker selectedId={selectedTemplateId} onSelect={handleTemplateSelect} />
+      </section>
+
+      <hr style={dividerStyle} />
 
       {/* ── Section 1: Channel Identity ── */}
       <section style={sectionStyle}>
@@ -451,24 +473,14 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
 
         <div style={fieldStyle}>
           <label style={labelStyle}>
-            Voice ID <span style={{ color: 'var(--color-status-failed)' }}>*</span>
+            Narrator Voice <span style={{ color: 'var(--color-status-failed)' }}>*</span>
           </label>
-          <TextInput
-            value={voiceId}
+          <VoicePicker
+            selectedVoiceId={voiceId}
             onChange={(v) => { setVoiceId(v); if (errors.voiceId) setErrors((prev) => ({ ...prev, voiceId: undefined })) }}
-            placeholder="ElevenLabs voice ID"
             error={!!errors.voiceId}
           />
           {errors.voiceId && <p style={errorTextStyle}>{errors.voiceId}</p>}
-        </div>
-
-        <div style={fieldStyle}>
-          <label style={labelStyle}>Voice Model</label>
-          <TextInput
-            value={voiceModel}
-            onChange={setVoiceModel}
-            placeholder="eleven_multilingual_v2"
-          />
         </div>
       </section>
 
@@ -507,11 +519,11 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
         </div>
 
         <div style={fieldStyle}>
-          <label style={labelStyle}>Category ID</label>
-          <TextInput
+          <label style={labelStyle}>Category</label>
+          <SelectInput
             value={ytCategoryId}
             onChange={setYtCategoryId}
-            placeholder="YouTube category number, e.g. 22"
+            options={[{ value: '', label: 'Select a category' }, ...YOUTUBE_CATEGORIES]}
           />
         </div>
 

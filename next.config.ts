@@ -15,7 +15,11 @@ const required = [
   'YOUTUBE_CLIENT_ID',
   'YOUTUBE_CLIENT_SECRET',
   'YOUTUBE_TOKEN_ENCRYPTION_KEY',
-  // Phase 5 — add Stripe vars here
+  // Phase 5 — Billing
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+  'STRIPE_STARTER_PRICE_ID',
+  'STRIPE_PRO_PRICE_ID',
 ]
 
 if (process.env.VERCEL) {

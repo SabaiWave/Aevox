@@ -26,7 +26,12 @@ function logStartup() {
     YOUTUBE_CLIENT_ID:                 !!process.env.YOUTUBE_CLIENT_ID,
     YOUTUBE_CLIENT_SECRET:             !!process.env.YOUTUBE_CLIENT_SECRET,
     YOUTUBE_TOKEN_ENCRYPTION_KEY:      !!process.env.YOUTUBE_TOKEN_ENCRYPTION_KEY,
-    // Phase 5 — Billing (add here)
+    // Phase 5 — Billing
+    STRIPE_SECRET_KEY:                 !!process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET:             !!process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_STARTER_PRICE_ID:           !!process.env.STRIPE_STARTER_PRICE_ID,
+    STRIPE_PRO_PRICE_ID:               !!process.env.STRIPE_PRO_PRICE_ID,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     // Phase 6 — Observability (add here)
   }
 
@@ -39,6 +44,10 @@ function logStartup() {
     'ELEVENLABS_API_KEY',
     'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
     'CLERK_SECRET_KEY',
+    'STRIPE_SECRET_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_STARTER_PRICE_ID',
+    'STRIPE_PRO_PRICE_ID',
   ]
 
   const missing = Object.entries(checks)
@@ -67,6 +76,12 @@ function logStartup() {
     console.log(fmt('YOUTUBE_CLIENT_ID',             'YOUTUBE_CLIENT_ID'))
     console.log(fmt('YOUTUBE_CLIENT_SECRET',         'YOUTUBE_CLIENT_SECRET'))
     console.log(fmt('YOUTUBE_TOKEN_ENCRYPTION_KEY',  'YOUTUBE_TOKEN_ENCRYPTION_KEY'))
+    console.log('  ·')
+    console.log(fmt('STRIPE_SECRET_KEY',             'STRIPE_SECRET_KEY',             true))
+    console.log(fmt('STRIPE_WEBHOOK_SECRET',         'STRIPE_WEBHOOK_SECRET',         true))
+    console.log(fmt('STRIPE_STARTER_PRICE_ID',       'STRIPE_STARTER_PRICE_ID',       true))
+    console.log(fmt('STRIPE_PRO_PRICE_ID',           'STRIPE_PRO_PRICE_ID',           true))
+    console.log(fmt('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'))
     console.log(`  ${'DRY_RUN'.padEnd(36)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
     console.log(`  ${'ADMIN_USER_IDS'.padEnd(36)}${process.env.ADMIN_USER_IDS ? 'set' : 'not set — admin features disabled'}`)
     console.log('─────────────────────────────────────────────────\n')

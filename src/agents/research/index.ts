@@ -14,7 +14,6 @@ interface TavilyResponse {
 }
 
 export class ResearchAgent {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async run(topic: string, _config: ChannelConfig, opts?: { dryRun?: boolean }): Promise<AgentResult<SourcePackage>> {
     const start = Date.now()
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'

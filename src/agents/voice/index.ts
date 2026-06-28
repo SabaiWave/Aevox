@@ -66,12 +66,17 @@ export class VoiceAgent {
         const errText = await response.text().catch(() => response.statusText)
         console.error(`[VoiceAgent] ElevenLabs ${response.status}:`, errText)
         let userMessage = `Voice generation failed (${response.status})`
-        if (response.status === 402) {
-          userMessage = 'ElevenLabs: paid plan required for this voice. Use a voice from your own ElevenLabs account.'
+        let parsedErr: { detail?: { code?: string } } = {}
+        try { parsedErr = JSON.parse(errText) } catch { /* not JSON */ }
+        const errCode = parsedErr?.detail?.code
+        if (errCode === 'quota_exceeded' || response.status === 402) {
+          userMessage = 'Voice character quota exceeded for this billing period. Upgrade your plan to continue.'
+        } else if (response.status === 404) {
+          userMessage = 'Voice generation failed — voice ID not found. Update the voice ID in your channel config.'
         } else if (response.status === 401) {
-          userMessage = 'ElevenLabs: invalid API key.'
+          userMessage = 'Voice generation failed — API configuration error. Contact support.'
         } else if (response.status === 429) {
-          userMessage = 'ElevenLabs: rate limit exceeded. Try again shortly.'
+          userMessage = 'Voice generation is temporarily unavailable. Try again shortly.'
         }
         return {
           status: 'failed',
@@ -110,11 +115,11 @@ export class VoiceAgent {
         status: 'success',
         data: {
           audioUrl: urlData.publicUrl,
-          durationSeconds: Math.round((script.length / 150) * 60),
-          charsUsed: script.length,
+          durationSeconds: Math.round((safeScript.length / 150) * 60),
+          charsUsed: safeScript.length,
         },
         durationMs: Date.now() - start,
-        usage: { charsUsed: script.length },
+        usage: { charsUsed: safeScript.length },
       }
     } catch (err) {
       console.error('[VoiceAgent] Unexpected error:', err)

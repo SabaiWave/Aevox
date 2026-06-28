@@ -16,7 +16,7 @@ export function NewRunForm({ configs, isAdmin }: Props) {
   const [isStarting, setIsStarting] = useState(false)
   const [isDryRun, setIsDryRun] = useState(false)
   const [error, setError] = useState('')
-  const [quotaExceeded, setQuotaExceeded] = useState<{ tier: string; videosUsed: number; videosLimit: number } | null>(null)
+  const [quotaExceeded, setQuotaExceeded] = useState<{ kind: 'video' | 'voice'; tier: string; used: number; limit: number } | null>(null)
 
   const inputStyle: React.CSSProperties = {
     background: 'var(--color-surface-2)',
@@ -49,15 +49,15 @@ export function NewRunForm({ configs, isAdmin }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configId: selectedConfigId, topic: topic.trim(), ...(isDryRun && { dryRun: true }) }),
       })
-      const json = (await res.json()) as { data?: { runId: string }; error?: string; code?: string; tier?: string; videosUsed?: number; videosLimit?: number }
+      const json = (await res.json()) as { data?: { runId: string }; error?: string; code?: string; tier?: string; videosUsed?: number; videosLimit?: number; charsUsed?: number; charsLimit?: number | null }
       if (json.data?.runId) {
         router.push(`/video/${json.data.runId}`)
-      } else if (res.status === 402 || json.code === 'QUOTA_EXCEEDED') {
-        setQuotaExceeded({
-          tier: json.tier ?? 'free',
-          videosUsed: json.videosUsed ?? 0,
-          videosLimit: json.videosLimit ?? 2,
-        })
+      } else if (res.status === 402) {
+        if (json.code === 'VOICE_QUOTA_EXCEEDED') {
+          setQuotaExceeded({ kind: 'voice', tier: json.tier ?? 'free', used: json.charsUsed ?? 0, limit: json.charsLimit ?? 10_000 })
+        } else {
+          setQuotaExceeded({ kind: 'video', tier: json.tier ?? 'free', used: json.videosUsed ?? 0, limit: json.videosLimit ?? 2 })
+        }
         setIsStarting(false)
       } else {
         setError(json.error ?? 'Failed to start generation')
@@ -143,7 +143,10 @@ export function NewRunForm({ configs, isAdmin }: Props) {
           fontSize: '0.875rem',
           color: 'var(--color-text-secondary)',
         }}>
-          You&apos;ve used all {quotaExceeded.videosUsed} of {quotaExceeded.videosLimit} videos this month on the {quotaExceeded.tier} plan.{' '}
+          {quotaExceeded.kind === 'voice'
+            ? `You've used all ${quotaExceeded.used.toLocaleString()} of ${quotaExceeded.limit.toLocaleString()} voice characters this month on the ${quotaExceeded.tier} plan.`
+            : `You've used all ${quotaExceeded.used} of ${quotaExceeded.limit} videos this month on the ${quotaExceeded.tier} plan.`
+          }{' '}
           <Link href="/upgrade" style={{ color: 'var(--color-primary)' }}>Upgrade</Link>
         </div>
       )}

@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "pipeline:dry": "DRY_RUN=true npx tsx scripts/dry-run.ts"
+    "pipeline:dry": "DRY_RUN=true npx tsx scripts/dry-run.ts",
+    "voices:seed": "npx tsx scripts/seed-voice-samples.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -33,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jest": "^30.4.2",

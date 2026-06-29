@@ -138,18 +138,18 @@ export default async function ConfigsPage() {
   return (
     <div>
       <div style={headerRowStyle}>
-        <h1 style={h1Style}>Channel Configs</h1>
+        <h1 style={h1Style}>Channels</h1>
         <Link href="/configs/new" style={newConfigBtnStyle}>
-          New Config
+          New Channel
         </Link>
       </div>
 
       {rows.length === 0 ? (
         <div style={emptyCenterStyle}>
-          <p style={emptyTitleStyle}>No configs yet</p>
-          <p style={emptySubtitleStyle}>Create your first channel config</p>
+          <p style={emptyTitleStyle}>No channels yet</p>
+          <p style={emptySubtitleStyle}>Create your first channel to get started</p>
           <Link href="/configs/new" style={newConfigBtnStyle}>
-            Create Config
+            New Channel
           </Link>
         </div>
       ) : (
@@ -175,7 +175,6 @@ function ConfigCard({ config }: { config: ConfigRow }) {
         <p style={nicheAndToneStyle}>
           {config.niche} &middot; {config.tone}
         </p>
-        <span style={configIdStyle}>{config.id}</span>
       </div>
       <Link href={`/configs/${config.id}`} style={editLinkStyle}>
         Edit

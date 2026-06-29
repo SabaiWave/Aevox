@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { withSentryConfig } from '@sentry/nextjs'
 
 // Fail Vercel build if required env vars are missing (VERCEL=1 is set automatically)
 const required = [
@@ -29,6 +30,51 @@ if (process.env.VERCEL) {
   }
 }
 
-const nextConfig: NextConfig = {}
+const csp = [
+  "default-src 'self'",
+  // Clerk and Stripe inject client-side scripts
+  "script-src 'self' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  // Browser-side API connections: Supabase realtime, Clerk, Stripe
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev https://api.clerk.dev https://js.stripe.com https://*.stripe.com",
+  // Clerk and Stripe render iframes for their hosted UI
+  "frame-src https://js.stripe.com https://*.clerk.accounts.dev",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+].join('; ')
 
-export default nextConfig
+const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NEXT_PUBLIC_APP_URL ?? 'https://klipto.app',
+          },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: csp },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+    ]
+  },
+}
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  sourcemaps: { disable: true },
+})

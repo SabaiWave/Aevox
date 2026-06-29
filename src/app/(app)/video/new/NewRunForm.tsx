@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 interface Props {
   configs: { id: string; name: string }[]
@@ -152,22 +153,30 @@ export function NewRunForm({ configs, isAdmin }: Props) {
       )}
 
       <div>
-        <button
-          type="submit"
-          disabled={isStarting || !topic.trim()}
-          style={{
-            backgroundColor: 'var(--color-primary)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            padding: '0.5rem 1rem',
-            cursor: isStarting || !topic.trim() ? 'not-allowed' : 'pointer',
-            opacity: isStarting || !topic.trim() ? 0.6 : 1,
-          }}
+        <Tooltip
+          content={!topic.trim() ? 'Enter a topic to generate' : undefined}
+          side="right"
         >
-          {isStarting ? 'Generating…' : 'Generate'}
-        </button>
+          <span style={{ display: 'inline-block' }}>
+            <button
+              type="submit"
+              disabled={isStarting || !topic.trim()}
+              style={{
+                backgroundColor: 'var(--color-primary)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                padding: '0.5rem 1rem',
+                cursor: isStarting || !topic.trim() ? 'not-allowed' : 'pointer',
+                opacity: isStarting || !topic.trim() ? 0.6 : 1,
+                pointerEvents: isStarting ? 'none' : 'auto',
+              }}
+            >
+              {isStarting ? 'Generating…' : 'Generate'}
+            </button>
+          </span>
+        </Tooltip>
       </div>
     </form>
   )

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/upgrade', label: 'Upgrade', icon: Zap },
-  { href: '/configs', label: 'Configs', icon: Settings },
+  { href: '/configs', label: 'Channels', icon: Settings },
 ]
 
 export default function Sidebar() {

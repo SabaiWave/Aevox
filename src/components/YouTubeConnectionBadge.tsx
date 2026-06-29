@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 type YouTubeStatus = 'connected' | 'disconnected' | 'expired' | 'loading'
 
@@ -66,22 +67,30 @@ export default function YouTubeConnectionBadge() {
 
       {/* Connect / Reconnect button */}
       {showButton && (
-        <button
-          onClick={() => { window.location.href = '/api/auth/youtube' }}
-          style={{
-            cursor: 'pointer',
-            background: 'transparent',
-            border: '1px solid var(--color-primary)',
-            borderRadius: '8px',
-            color: 'var(--color-primary)',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            padding: '2px 12px',
-            lineHeight: '1.5',
-          }}
+        <Tooltip
+          content={
+            status === 'expired'
+              ? 'Your access token expired — reconnect to resume publishing'
+              : 'Connect your YouTube channel to enable video publishing'
+          }
         >
-          {buttonLabel}
-        </button>
+          <button
+            onClick={() => { window.location.href = '/api/auth/youtube' }}
+            style={{
+              cursor: 'pointer',
+              background: 'transparent',
+              border: '1px solid var(--color-primary)',
+              borderRadius: '8px',
+              color: 'var(--color-primary)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              padding: '2px 12px',
+              lineHeight: '1.5',
+            }}
+          >
+            {buttonLabel}
+          </button>
+        </Tooltip>
       )}
     </div>
   )

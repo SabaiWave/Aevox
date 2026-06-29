@@ -275,6 +275,7 @@ export default async function DashboardPage({
                     }}
                   >
                     <span
+                      title={run.topic}
                       style={{
                         fontSize: '0.875rem',
                         fontWeight: 500,
@@ -289,6 +290,7 @@ export default async function DashboardPage({
                     </span>
                     <span
                       className="font-mono"
+                      title={run.id}
                       style={{
                         fontSize: '0.75rem',
                         color: 'var(--color-text-tertiary)',

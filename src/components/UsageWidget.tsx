@@ -1,3 +1,7 @@
+'use client'
+
+import { Tooltip } from '@/components/ui/Tooltip'
+
 interface UsageWidgetProps {
   charsUsed: number
   charsLimit: number | undefined  // undefined = unlimited (pro)
@@ -87,8 +91,12 @@ export function UsageWidget({ charsUsed, charsLimit, videosUsed, videosLimit, ti
         </span>
       </div>
 
-      <UsageMeter label="Voice characters" used={charsUsed} limit={charsLimit} />
-      <UsageMeter label="Videos this month" used={videosUsed} limit={videosLimit} />
+      <Tooltip content="Voice narration used this month">
+        <div><UsageMeter label="Voice characters" used={charsUsed} limit={charsLimit} /></div>
+      </Tooltip>
+      <Tooltip content="Videos generated this month">
+        <div><UsageMeter label="Videos this month" used={videosUsed} limit={videosLimit} /></div>
+      </Tooltip>
     </div>
   )
 }

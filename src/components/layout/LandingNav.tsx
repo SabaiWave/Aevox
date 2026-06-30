@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
-import { UserButton } from '@clerk/nextjs'
 import LandingNavMobile from './LandingNavMobile'
+import LandingNavUserButton from './LandingNavUserButton'
 import styles from './LandingNav.module.css'
 
 export default async function LandingNav() {
@@ -17,7 +17,7 @@ export default async function LandingNav() {
           {isAuthed ? (
             <>
               <Link href="/dashboard" className={styles.ghost}>Dashboard</Link>
-              <UserButton />
+              <LandingNavUserButton />
             </>
           ) : (
             <>

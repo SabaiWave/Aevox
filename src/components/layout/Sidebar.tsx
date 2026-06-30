@@ -21,7 +21,7 @@ export default function Sidebar({ showAdmin = false }: SidebarProps) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">Klipto</div>
+      <Link href="/" className="sidebar-brand">KLIPTO</Link>
       <nav>
         {navItems.map(({ href, label, icon: Icon }) => (
           <Link

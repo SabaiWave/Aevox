@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AppFooter from '@/components/layout/AppFooter'
+import LandingNav from '@/components/layout/LandingNav'
 import styles from './page.module.css'
 
 export default function HomePage() {
@@ -28,6 +29,7 @@ export default function HomePage() {
 
   return (
     <>
+      <LandingNav />
       <main className={styles.main}>
         <section className={styles.hero}>
           <p className={styles.eyebrow}>For solo faceless YouTube creators</p>

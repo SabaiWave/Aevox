@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { Webhook } from 'svix'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { isUserCreatedEvent } from '@/lib/clerk-webhook'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   // ── 1. Verify CLERK_WEBHOOK_SECRET is configured ──────────────────────────
@@ -69,6 +70,11 @@ export async function POST(req: NextRequest) {
     console.error('[webhook/clerk] Failed to insert user:', error.message)
     return Response.json({ error: 'Failed to create user' }, { status: 500 })
   }
+
+  // ── 8. Send welcome email (non-blocking — failure doesn't fail signup) ─────
+  sendWelcomeEmail(primaryEmail).catch(err =>
+    console.error('[webhook/clerk] Welcome email failed:', err instanceof Error ? err.message : err)
+  )
 
   return Response.json({ received: true }, { status: 200 })
 }

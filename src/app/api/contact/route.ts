@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { isApiRoute } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { getResend, getFromAddress } from '@/lib/email'
+import { sendEmail, getFromAddress } from '@/lib/email'
 import { log } from '@/lib/logger'
 
 const contactSchema = z.object({
@@ -20,14 +20,9 @@ export async function POST(req: Request): Promise<Response> {
     req.headers.get('x-real-ip') ??
     'unknown'
 
-  if (ip === 'unknown') {
-    return Response.json({ error: 'Too many requests' }, { status: 429 })
-  }
-
-  const { limited, retryAfterSeconds } = checkRateLimit(`contact:${ip}`, {
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-  })
+  const { limited, retryAfterSeconds } = ip === 'unknown'
+    ? { limited: false, retryAfterSeconds: 0 }
+    : checkRateLimit(`contact:${ip}`, { windowMs: 15 * 60 * 1000, max: 5 })
 
   if (limited) {
     return Response.json(
@@ -51,7 +46,7 @@ export async function POST(req: Request): Promise<Response> {
   const { name, email } = parsed.data
 
   try {
-    await getResend().emails.send({
+    await sendEmail({
       from: getFromAddress(),
       to: process.env.SUPPORT_EMAIL!,
       subject: `Contact form: ${name}`,

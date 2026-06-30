@@ -2,12 +2,9 @@
 
 const mockSend = jest.fn()
 
-jest.mock('resend', () => ({
-  Resend: jest.fn().mockImplementation(() => ({ emails: { send: mockSend } })),
-}))
-
 jest.mock('@/lib/email', () => ({
-  getResend: jest.fn(() => ({ emails: { send: mockSend } })),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendEmail: (...args: any[]) => mockSend(...args),
   getFromAddress: jest.fn(() => 'Klipto <noreply@klipto.ai>'),
 }))
 
@@ -77,7 +74,7 @@ describe('POST /api/contact', () => {
     // Re-establish default mock implementations after clearAllMocks
     mockIsApiRoute.mockReturnValue(true)
     mockCheckRateLimit.mockReturnValue({ limited: false, retryAfterSeconds: 0 })
-    mockSend.mockResolvedValue({ data: { id: 'email_123' }, error: null })
+    mockSend.mockResolvedValue(undefined)
   })
 
   it('returns 404 when isApiRoute returns false', async () => {
@@ -144,7 +141,7 @@ describe('POST /api/contact', () => {
     expect(body.error).toBe('Invalid fields')
   })
 
-  it('calls Resend emails.send with correct to, from, subject, and text on valid body', async () => {
+  it('calls sendEmail with correct to, from, subject, and text on valid body', async () => {
     const req = makeRequest()
     await POST(req as never)
 
@@ -166,8 +163,8 @@ describe('POST /api/contact', () => {
     expect(body).toEqual({ success: true })
   })
 
-  it('returns 500 with generic error when Resend throws', async () => {
-    mockSend.mockRejectedValue(new Error('Resend network timeout'))
+  it('returns 500 with generic error when Brevo throws', async () => {
+    mockSend.mockRejectedValue(new Error('Brevo network timeout'))
 
     const req = makeRequest()
     const res = await POST(req as never)
@@ -177,18 +174,18 @@ describe('POST /api/contact', () => {
     expect(body.error).toBe('Failed to send message')
   })
 
-  it('does not expose the raw Resend error message in the 500 response', async () => {
-    mockSend.mockRejectedValue(new Error('Resend network timeout'))
+  it('does not expose the raw Brevo error message in the 500 response', async () => {
+    mockSend.mockRejectedValue(new Error('Brevo network timeout'))
 
     const req = makeRequest()
     const res = await POST(req as never)
 
     const body = await res.json()
-    expect(JSON.stringify(body)).not.toContain('Resend network timeout')
+    expect(JSON.stringify(body)).not.toContain('Brevo network timeout')
   })
 
-  it('logs the error when Resend throws', async () => {
-    mockSend.mockRejectedValue(new Error('Resend network timeout'))
+  it('logs the error when Brevo throws', async () => {
+    mockSend.mockRejectedValue(new Error('Brevo network timeout'))
 
     const req = makeRequest()
     await POST(req as never)
@@ -196,7 +193,7 @@ describe('POST /api/contact', () => {
     expect(mockLog.error).toHaveBeenCalledTimes(1)
     expect(mockLog.error).toHaveBeenCalledWith(
       '[contact] send failed',
-      expect.objectContaining({ error: 'Resend network timeout' })
+      expect.objectContaining({ error: 'Brevo network timeout' })
     )
   })
 

@@ -33,7 +33,7 @@ if (process.env.VERCEL) {
 const csp = [
   "default-src 'self'",
   // Clerk and Stripe inject client-side scripts
-  "script-src 'self' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",

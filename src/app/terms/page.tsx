@@ -1,4 +1,5 @@
 import AppFooter from '@/components/layout/AppFooter'
+import LandingNav from '@/components/layout/LandingNav'
 import styles from './terms.module.css'
 
 export const metadata = {
@@ -8,6 +9,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <>
+      <LandingNav />
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.header}>

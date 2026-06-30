@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import UpgradeButton from './UpgradeButton'
+import ManageSubscriptionButton from './ManageSubscriptionButton'
 
 const starterFeatures = [
   '8 videos per month',
@@ -126,16 +127,19 @@ export default async function UpgradePage() {
 
   return (
     <div style={{ maxWidth: '800px' }}>
-      <h1
-        style={{
-          fontSize: '1.5rem',
-          fontWeight: 600,
-          color: 'var(--color-text-primary)',
-          margin: '0 0 0.5rem',
-        }}
-      >
-        Upgrade
-      </h1>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
+        <h1
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            color: 'var(--color-text-primary)',
+            margin: 0,
+          }}
+        >
+          Upgrade
+        </h1>
+        {currentTier !== 'free' && <ManageSubscriptionButton />}
+      </div>
       <p
         style={{
           fontSize: '0.875rem',

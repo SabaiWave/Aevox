@@ -78,12 +78,6 @@ const nicheAndToneStyle: React.CSSProperties = {
   marginBottom: '0.375rem',
 }
 
-const configIdStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  color: 'var(--color-text-tertiary)',
-  fontFamily: 'var(--font-mono)',
-}
-
 const editLinkStyle: React.CSSProperties = {
   fontSize: '0.875rem',
   color: 'var(--color-primary)',

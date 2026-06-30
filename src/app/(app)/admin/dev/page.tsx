@@ -249,7 +249,7 @@ export default async function AdminDevPage() {
             margin: 0,
           }}
         >
-          Insert or clear fake <code>usage_logs</code> rows to test quota enforcement.
+          Insert or clear fake <code>videos</code> rows to trigger video or char quota walls.
         </p>
         <QuotaSimButtons />
       </section>

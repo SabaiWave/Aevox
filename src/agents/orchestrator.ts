@@ -417,14 +417,12 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
     if (!args.isDryRun && args.voiceResult?.status === 'success') {
       const charsUsed = args.voiceResult.data?.charsUsed ?? 0
       if (charsUsed > 0) {
-        const { error: usageError } = await supabase.from('usage_logs').insert({
-          user_id: args.config.userId,
-          run_id: args.runId,
-          event_type: 'voice_chars_used',
-          chars_used: charsUsed,
-        })
-        if (usageError) {
-          console.error('[orchestrator] Failed to write voice usage log:', usageError.message)
+        const { error: updateError } = await supabase
+          .from('videos')
+          .update({ chars_used: charsUsed })
+          .eq('id', args.runId)
+        if (updateError) {
+          console.error('[orchestrator] Failed to update chars_used:', updateError.message)
         }
       }
     }

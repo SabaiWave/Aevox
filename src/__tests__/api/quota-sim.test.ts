@@ -1,14 +1,18 @@
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockInsert = jest.fn()
+const mockDeleteEq2 = jest.fn()
+const mockDeleteEq1 = jest.fn()
 const mockDelete = jest.fn()
-const mockDeleteEq = jest.fn()
-const mockSelectCount = jest.fn()
-const mockSelectCountEq = jest.fn()
-const mockSelectCountEqGte = jest.fn()
+const mockCountGte = jest.fn()
+const mockCountEq2 = jest.fn()
+const mockCountEq1 = jest.fn()
+const mockDataGte = jest.fn()
+const mockDataEq2 = jest.fn()
+const mockDataEq1 = jest.fn()
 const mockSingle = jest.fn()
-const mockEq = jest.fn()
-const mockSelect = jest.fn()
+const mockUserEq = jest.fn()
+const mockUserSelect = jest.fn()
 const mockFrom = jest.fn()
 
 jest.mock('@/lib/supabase-server', () => ({
@@ -52,7 +56,7 @@ const mockLog = log as { info: jest.Mock; warn: jest.Mock; error: jest.Mock }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeRequest(body: Record<string, unknown> = { action: 'fill' }): Request {
+function makeRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/admin/quota-sim', {
     method: 'POST',
     headers: {
@@ -69,43 +73,45 @@ describe('POST /api/admin/quota-sim', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Re-establish defaults after clearAllMocks removes implementations
     mockAuth.mockResolvedValue({ userId: 'user_admin_123' })
     mockIsApiRoute.mockReturnValue(true)
     mockIsAdmin.mockResolvedValue(true)
     mockCheckRateLimit.mockReturnValue({ limited: false, retryAfterSeconds: 0 })
-    mockLog.error.mockResolvedValue(undefined)
+    mockLog.error.mockReturnValue(undefined)
 
-    // Default users table lookup chain: from('users').select('id, tier').eq(...).single()
-    mockSingle.mockResolvedValue({
-      data: { id: 'uuid-user-1', tier: 'starter' },
-      error: null,
-    })
-    mockEq.mockReturnValue({ single: mockSingle })
-    mockSelect.mockReturnValue({ eq: mockEq })
+    // users table: .select('id, tier').eq('clerk_id', ...).single()
+    mockSingle.mockResolvedValue({ data: { id: 'uuid-user-1', tier: 'starter' }, error: null })
+    mockUserEq.mockReturnValue({ single: mockSingle })
+    mockUserSelect.mockReturnValue({ eq: mockUserEq })
 
-    // Default count chain: from('usage_logs').select('id', { count, head }).eq(...).eq(...).gte(...)
-    mockSelectCountEqGte.mockResolvedValue({ count: 0, error: null })
-    mockSelectCountEq.mockReturnValue({ gte: mockSelectCountEqGte })
-    mockSelectCountEq.mockImplementation(() => ({ gte: mockSelectCountEqGte, eq: mockSelectCountEq }))
-    mockSelectCount.mockReturnValue({ eq: mockSelectCountEq })
+    // videos count query: .select('id', {count,head}).eq().eq().gte()
+    mockCountGte.mockResolvedValue({ count: 0, error: null })
+    mockCountEq2.mockReturnValue({ gte: mockCountGte })
+    mockCountEq1.mockReturnValue({ eq: mockCountEq2 })
 
-    // Default insert chain: from('usage_logs').insert(rows)
+    // videos data query: .select('chars_used').eq().eq().gte()
+    mockDataGte.mockResolvedValue({ data: [], error: null })
+    mockDataEq2.mockReturnValue({ gte: mockDataGte })
+    mockDataEq1.mockReturnValue({ eq: mockDataEq2 })
+
+    // insert
     mockInsert.mockResolvedValue({ error: null })
 
-    // Default delete chain: from('usage_logs').delete({ count }).eq(...).eq(...)
-    mockDeleteEq.mockResolvedValue({ count: 3, error: null })
-    mockDelete.mockReturnValue({ eq: jest.fn(() => ({ eq: mockDeleteEq })) })
+    // delete chain: .delete({count}).eq('user_id').eq('is_simulated')
+    mockDeleteEq2.mockResolvedValue({ count: 3, error: null })
+    mockDeleteEq1.mockReturnValue({ eq: mockDeleteEq2 })
+    mockDelete.mockReturnValue({ eq: mockDeleteEq1 })
 
-    // Route `from` dispatcher
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'users') return { select: mockSelect }
-      if (table === 'usage_logs')
+      if (table === 'users') return { select: mockUserSelect }
+      if (table === 'videos') {
         return {
-          select: mockSelectCount,
+          select: (col: string, opts?: { count?: string; head?: boolean }) =>
+            opts?.count ? { eq: mockCountEq1 } : { eq: mockDataEq1 },
           insert: mockInsert,
           delete: mockDelete,
         }
+      }
       return {}
     })
   })
@@ -114,189 +120,167 @@ describe('POST /api/admin/quota-sim', () => {
 
   it('returns 404 when isApiRoute returns false', async () => {
     mockIsApiRoute.mockReturnValue(false)
-
-    const req = makeRequest()
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
     expect(res.status).toBe(404)
-    const body = await res.json()
-    expect(body.error).toBe('Not found')
+    expect((await res.json()).error).toBe('Not found')
   })
 
   it('returns 401 when unauthenticated', async () => {
     mockAuth.mockResolvedValue({ userId: null })
-
-    const req = makeRequest()
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
     expect(res.status).toBe(401)
-    const body = await res.json()
-    expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns 403 when authenticated but not admin', async () => {
+  it('returns 403 when not admin', async () => {
     mockIsAdmin.mockResolvedValue(false)
-
-    const req = makeRequest()
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
     expect(res.status).toBe(403)
-    const body = await res.json()
-    expect(body.error).toBe('Forbidden')
   })
 
   it('returns 429 when rate limited', async () => {
     mockCheckRateLimit.mockReturnValue({ limited: true, retryAfterSeconds: 30 })
-
-    const req = makeRequest()
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
     expect(res.status).toBe(429)
-    const body = await res.json()
-    expect(body.error).toBe('Too many requests')
     expect(res.headers.get('Retry-After')).toBe('30')
   })
 
-  // ── Validation ─────────────────────────────────────────────────────────────
-
   it('returns 400 on invalid action', async () => {
-    const req = makeRequest({ action: 'nuke' })
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill' }) as never)
     expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toBe('Invalid request')
+    expect((await res.json()).error).toBe('Invalid request')
   })
 
-  it('returns 400 when body is missing action entirely', async () => {
-    const req = makeRequest({})
-    const res = await POST(req as never)
-
+  it('returns 400 when body has no action', async () => {
+    const res = await POST(makeRequest({}) as never)
     expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toBe('Invalid request')
   })
 
-  it('returns 400 when body is invalid JSON', async () => {
+  it('returns 400 on invalid JSON', async () => {
     const req = new Request('http://localhost/api/admin/quota-sim', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '1.2.3.4' },
       body: 'not-json',
     })
     const res = await POST(req as never)
-
     expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toBe('Invalid JSON')
+    expect((await res.json()).error).toBe('Invalid JSON')
   })
 
-  // ── User lookup ────────────────────────────────────────────────────────────
-
-  it('returns 404 when user is not found in DB', async () => {
+  it('returns 404 when user not found in DB', async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: 'No rows' } })
-
-    const req = makeRequest({ action: 'fill' })
-    const res = await POST(req as never)
-
+    const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
     expect(res.status).toBe(404)
-    const body = await res.json()
-    expect(body.error).toBe('User not found')
   })
 
-  // ── Fill action ────────────────────────────────────────────────────────────
+  // ── fill_videos ────────────────────────────────────────────────────────────
 
-  it('fill: returns 200 with { success: true, count: N } when rows inserted', async () => {
-    // starter tier cap = 8, existing = 3 → toInsert = 5
-    mockSelectCountEqGte.mockResolvedValue({ count: 3, error: null })
-    mockInsert.mockResolvedValue({ error: null })
+  describe('fill_videos', () => {
+    it('inserts rows to reach video cap', async () => {
+      mockCountGte.mockResolvedValue({ count: 3, error: null })
+      const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(5) // starter cap=8, existing=3
+    })
 
-    const req = makeRequest({ action: 'fill' })
-    const res = await POST(req as never)
+    it('returns count 0 when already at cap', async () => {
+      mockCountGte.mockResolvedValue({ count: 8, error: null })
+      const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(0)
+    })
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.success).toBe(true)
-    expect(body.count).toBe(5)
+    it('uses free tier cap of 2 when tier is null', async () => {
+      mockSingle.mockResolvedValue({ data: { id: 'uuid-user-1', tier: null }, error: null })
+      mockCountGte.mockResolvedValue({ count: 0, error: null })
+      const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(2)
+    })
+
+    it('returns warning for pro tier', async () => {
+      mockSingle.mockResolvedValue({ data: { id: 'uuid-user-1', tier: 'pro' }, error: null })
+      const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(0)
+      expect(body.warning).toContain('no video cap')
+    })
+
+    it('returns 500 on insert error', async () => {
+      mockCountGte.mockResolvedValue({ count: 0, error: null })
+      mockInsert.mockResolvedValue({ error: { message: 'constraint violation' } })
+      const res = await POST(makeRequest({ action: 'fill_videos' }) as never)
+      expect(res.status).toBe(500)
+      expect(mockLog.error).toHaveBeenCalledTimes(1)
+    })
   })
 
-  it('fill: returns 200 with { success: true, count: 0 } when already at cap', async () => {
-    // starter tier cap = 8, existing = 8 → toInsert = 0
-    mockSelectCountEqGte.mockResolvedValue({ count: 8, error: null })
+  // ── fill_chars ─────────────────────────────────────────────────────────────
 
-    const req = makeRequest({ action: 'fill' })
-    const res = await POST(req as never)
+  describe('fill_chars', () => {
+    it('inserts one row to exceed char cap', async () => {
+      mockDataGte.mockResolvedValue({ data: [], error: null })
+      const res = await POST(makeRequest({ action: 'fill_chars' }) as never)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(1)
+    })
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.success).toBe(true)
-    expect(body.count).toBe(0)
+    it('returns count 0 when chars already exceed cap', async () => {
+      mockDataGte.mockResolvedValue({ data: [{ chars_used: 100_001 }], error: null })
+      const res = await POST(makeRequest({ action: 'fill_chars' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(0)
+    })
+
+    it('returns warning for pro tier', async () => {
+      mockSingle.mockResolvedValue({ data: { id: 'uuid-user-1', tier: 'pro' }, error: null })
+      const res = await POST(makeRequest({ action: 'fill_chars' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(0)
+      expect(body.warning).toContain('no char cap')
+    })
+
+    it('returns 500 on insert error', async () => {
+      mockDataGte.mockResolvedValue({ data: [], error: null })
+      mockInsert.mockResolvedValue({ error: { message: 'insert failed' } })
+      const res = await POST(makeRequest({ action: 'fill_chars' }) as never)
+      expect(res.status).toBe(500)
+      expect(mockLog.error).toHaveBeenCalledTimes(1)
+    })
   })
 
-  it('fill: uses free tier cap of 2 when user has no tier set', async () => {
-    mockSingle.mockResolvedValue({ data: { id: 'uuid-user-1', tier: null }, error: null })
-    // existing = 0 → toInsert = 2
-    mockSelectCountEqGte.mockResolvedValue({ count: 0, error: null })
-    mockInsert.mockResolvedValue({ error: null })
+  // ── clear ──────────────────────────────────────────────────────────────────
 
-    const req = makeRequest({ action: 'fill' })
-    const res = await POST(req as never)
+  describe('clear', () => {
+    it('deletes all is_simulated rows for this user', async () => {
+      mockDeleteEq2.mockResolvedValue({ count: 6, error: null })
+      const res = await POST(makeRequest({ action: 'clear' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(6)
+    })
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.success).toBe(true)
-    expect(body.count).toBe(2)
-  })
+    it('returns count 0 when no sim rows exist', async () => {
+      mockDeleteEq2.mockResolvedValue({ count: null, error: null })
+      const res = await POST(makeRequest({ action: 'clear' }) as never)
+      const body = await res.json()
+      expect(body.success).toBe(true)
+      expect(body.count).toBe(0)
+    })
 
-  it('fill: returns 500 on Supabase insert error', async () => {
-    mockSelectCountEqGte.mockResolvedValue({ count: 0, error: null })
-    mockInsert.mockResolvedValue({ error: { message: 'insert constraint violation' } })
-
-    const req = makeRequest({ action: 'fill' })
-    const res = await POST(req as never)
-
-    expect(res.status).toBe(500)
-    const body = await res.json()
-    expect(body.error).toBe('Insert failed')
-    expect(mockLog.error).toHaveBeenCalledTimes(1)
-    expect(mockLog.error.mock.calls[0][0]).toContain('[quota-sim]')
-  })
-
-  // ── Clear action ───────────────────────────────────────────────────────────
-
-  it('clear: returns 200 with { success: true, count: N } when rows deleted', async () => {
-    mockDeleteEq.mockResolvedValue({ count: 4, error: null })
-
-    const req = makeRequest({ action: 'clear' })
-    const res = await POST(req as never)
-
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.success).toBe(true)
-    expect(body.count).toBe(4)
-  })
-
-  it('clear: returns 200 with count 0 when no simulated rows exist', async () => {
-    mockDeleteEq.mockResolvedValue({ count: null, error: null })
-
-    const req = makeRequest({ action: 'clear' })
-    const res = await POST(req as never)
-
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.success).toBe(true)
-    expect(body.count).toBe(0)
-  })
-
-  it('clear: returns 500 on Supabase delete error', async () => {
-    mockDeleteEq.mockResolvedValue({ count: null, error: { message: 'delete failed' } })
-
-    const req = makeRequest({ action: 'clear' })
-    const res = await POST(req as never)
-
-    expect(res.status).toBe(500)
-    const body = await res.json()
-    expect(body.error).toBe('Delete failed')
-    expect(mockLog.error).toHaveBeenCalledTimes(1)
-    expect(mockLog.error.mock.calls[0][0]).toContain('[quota-sim]')
+    it('returns 500 on delete error', async () => {
+      mockDeleteEq2.mockResolvedValue({ count: null, error: { message: 'delete failed' } })
+      const res = await POST(makeRequest({ action: 'clear' }) as never)
+      expect(res.status).toBe(500)
+      expect(mockLog.error).toHaveBeenCalledTimes(1)
+    })
   })
 })

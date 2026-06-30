@@ -21,7 +21,7 @@ export async function POST(req: Request): Promise<Response> {
     'unknown'
 
   const { limited, retryAfterSeconds } = ip === 'unknown'
-    ? { limited: false, retryAfterSeconds: 0 }
+    ? { limited: true, retryAfterSeconds: 0 }
     : checkRateLimit(`contact:${ip}`, { windowMs: 15 * 60 * 1000, max: 5 })
 
   if (limited) {

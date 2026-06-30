@@ -123,6 +123,17 @@ function setupHappyPathMocks(): void {
         insert: jest.fn().mockResolvedValue({ error: null }),
       }
     }
+    if (table === 'usage_logs') {
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+            }),
+          }),
+        }),
+      }
+    }
     return {}
   })
 }

@@ -6,14 +6,18 @@ import { isAdmin } from '@/lib/is-admin'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
-const TIER_CAPS: Record<string, number> = {
+const VIDEO_CAPS: Record<string, number> = {
   free: 2,
   starter: 8,
-  pro: 999,
+}
+
+const CHAR_CAPS: Record<string, number> = {
+  free: 10_000,
+  starter: 100_000,
 }
 
 const schema = z.object({
-  action: z.enum(['fill', 'clear']),
+  action: z.enum(['fill_videos', 'fill_chars', 'clear']),
 })
 
 export async function POST(req: NextRequest) {
@@ -28,7 +32,6 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Admin check ─────────────────────────────────────────────────────────
   const adminOk = await isAdmin()
-  // Double-check: isAdmin() internally reads ADMIN_USER_IDS and verifies userId is in it
   if (!adminOk) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
   // ── 3. Rate limit (by userId) ──────────────────────────────────────────────
@@ -73,24 +76,26 @@ export async function POST(req: NextRequest) {
   const userUuid: string = userRow.id
   const tier: string = userRow.tier ?? 'free'
 
-  // ── 6a. Fill action ────────────────────────────────────────────────────────
-  if (action === 'fill') {
-    const cap = TIER_CAPS[tier] ?? 2
+  const monthStart = new Date()
+  monthStart.setUTCDate(1)
+  monthStart.setUTCHours(0, 0, 0, 0)
+  const monthStartIso = monthStart.toISOString()
 
-    // Count existing non-simulated video_generated events this month
-    const monthStart = new Date()
-    monthStart.setUTCDate(1)
-    monthStart.setUTCHours(0, 0, 0, 0)
+  // ── 6a. fill_videos ────────────────────────────────────────────────────────
+  if (action === 'fill_videos') {
+    const cap = VIDEO_CAPS[tier]
+    if (cap === undefined) {
+      return Response.json({ success: true, count: 0, warning: `${tier} tier has no video cap — nothing to fill` })
+    }
 
-    const { count: currentCount } = await supabase
-      .from('usage_logs')
+    const { count: existing } = await supabase
+      .from('videos')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userUuid)
-      .eq('event_type', 'video_generated')
-      .gte('created_at', monthStart.toISOString())
+      .eq('is_dry_run', false)
+      .gte('created_at', monthStartIso)
 
-    const existing = currentCount ?? 0
-    const toInsert = Math.max(0, cap - existing)
+    const toInsert = Math.max(0, cap - (existing ?? 0))
 
     if (toInsert === 0) {
       return Response.json({ success: true, count: 0 })
@@ -98,27 +103,71 @@ export async function POST(req: NextRequest) {
 
     const rows = Array.from({ length: toInsert }, () => ({
       user_id: userUuid,
-      event_type: 'video_generated',
-      metadata: { simulated: true },
+      config_id: null,
+      topic: '__sim__',
+      status: 'complete',
+      is_dry_run: false,
+      is_simulated: true,
+      chars_used: 0,
     }))
 
-    const { error: insertErr } = await supabase.from('usage_logs').insert(rows)
+    const { error: insertErr } = await supabase.from('videos').insert(rows)
     if (insertErr) {
-      log.error('[quota-sim] fill insert failed', { error: insertErr.message })
+      log.error('[quota-sim] fill_videos insert failed', { error: insertErr.message })
       return Response.json({ error: 'Insert failed' }, { status: 500 })
     }
 
     return Response.json({ success: true, count: toInsert })
   }
 
-  // ── 6b. Clear action ───────────────────────────────────────────────────────
+  // ── 6b. fill_chars ─────────────────────────────────────────────────────────
+  if (action === 'fill_chars') {
+    const cap = CHAR_CAPS[tier]
+    if (cap === undefined) {
+      return Response.json({ success: true, count: 0, warning: `${tier} tier has no char cap — nothing to fill` })
+    }
+
+    const { data: charRows } = await supabase
+      .from('videos')
+      .select('chars_used')
+      .eq('user_id', userUuid)
+      .eq('is_dry_run', false)
+      .gte('created_at', monthStartIso)
+
+    const existingChars = (charRows ?? []).reduce(
+      (sum, row) => sum + (Number(row.chars_used) || 0),
+      0,
+    )
+
+    const needed = Math.max(0, cap + 1 - existingChars)
+    if (needed === 0) {
+      return Response.json({ success: true, count: 0 })
+    }
+
+    const { error: insertErr } = await supabase.from('videos').insert({
+      user_id: userUuid,
+      config_id: null,
+      topic: '__sim__',
+      status: 'complete',
+      is_dry_run: false,
+      is_simulated: true,
+      chars_used: needed,
+    })
+    if (insertErr) {
+      log.error('[quota-sim] fill_chars insert failed', { error: insertErr.message })
+      return Response.json({ error: 'Insert failed' }, { status: 500 })
+    }
+
+    return Response.json({ success: true, count: 1 })
+  }
+
+  // ── 6c. clear ─────────────────────────────────────────────────────────────
   if (action === 'clear') {
-    // Delete rows where metadata->>'simulated' = 'true' for this user
     const { count: deletedCount, error: deleteErr } = await supabase
-      .from('usage_logs')
+      .from('videos')
       .delete({ count: 'exact' })
       .eq('user_id', userUuid)
-      .eq('metadata->>simulated', 'true')
+      .eq('is_simulated', true)
 
     if (deleteErr) {
       log.error('[quota-sim] clear delete failed', { error: deleteErr.message })
@@ -128,6 +177,6 @@ export async function POST(req: NextRequest) {
     return Response.json({ success: true, count: deletedCount ?? 0 })
   }
 
-  // Should be unreachable due to Zod enum
+  // Unreachable due to Zod enum
   return Response.json({ error: 'Unknown action' }, { status: 400 })
 }

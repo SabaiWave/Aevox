@@ -7,6 +7,7 @@ import type {
   StageState,
   SourcePackage,
   VoiceOutput,
+  VideoOutput,
   PublishOutput,
 } from '@/types'
 import { RunStatusBadge } from './RunStatusBadge'
@@ -22,6 +23,7 @@ const STAGE_LABEL_MAP: Record<PipelineStage, string> = {
   research: 'Research',
   script: 'Script',
   voice: 'Voice',
+  video: 'Video',
   publish: 'Publish',
 }
 
@@ -152,6 +154,48 @@ function VoiceBody({ data }: { data: VoiceOutput }) {
   )
 }
 
+function VideoBody({ data }: { data: VideoOutput }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <video
+        controls
+        src={data.videoUrl}
+        style={{ width: '100%', borderRadius: '4px' }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          fontSize: '0.8125rem',
+          color: 'var(--color-text-tertiary)',
+        }}
+      >
+        <span>
+          Duration:{' '}
+          <span className="font-mono">{data.durationSeconds}s</span>
+        </span>
+        <span>
+          Images:{' '}
+          <span className="font-mono">{data.imageCount}</span>
+        </span>
+        <a
+          href={data.videoUrl}
+          download
+          style={{
+            marginLeft: 'auto',
+            color: 'var(--color-primary)',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}
+        >
+          Download MP4
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function PublishBody({ data }: { data: PublishOutput }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
@@ -200,6 +244,8 @@ function ResultBody({
       return <ScriptBody data={result.data as string} />
     case 'voice':
       return <VoiceBody data={result.data as VoiceOutput} />
+    case 'video':
+      return <VideoBody data={result.data as VideoOutput} />
     case 'publish':
       return <PublishBody data={result.data as PublishOutput} />
   }

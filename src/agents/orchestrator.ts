@@ -1,6 +1,7 @@
 import { ResearchAgent } from '@/agents/research'
 import { ScriptAgent } from '@/agents/script'
 import { VoiceAgent } from '@/agents/voice'
+import { VideoAgent } from '@/agents/video'
 import { PublishAgent } from '@/agents/publish'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { checkVoiceQuota } from '@/lib/quota'
@@ -13,6 +14,7 @@ import type {
   PublishOutput,
   SourcePackage,
   SSEEvent,
+  VideoOutput,
   VoiceOutput,
 } from '@/types'
 
@@ -74,6 +76,7 @@ export function buildDegradedContext(
   researchResult: AgentResult<SourcePackage> | null,
   scriptResult: AgentResult<string> | null,
   voiceResult: AgentResult<VoiceOutput> | null,
+  videoResult: AgentResult<VideoOutput> | null,
   publishResult: AgentResult<PublishOutput> | null,
 ): DegradedContext {
   const failedStages: string[] = []
@@ -105,6 +108,14 @@ export function buildDegradedContext(
     gapMessages.push('Voice synthesis failed — no audio file available')
   }
 
+  if (videoResult && videoResult.status === 'success' && videoResult.data !== null) {
+    availableData.video = videoResult.data
+  }
+  if (videoResult && (videoResult.status === 'failed' || videoResult.status === 'degraded')) {
+    failedStages.push('video')
+    gapMessages.push('Video generation failed — no video file available')
+  }
+
   if (publishResult && publishResult.status === 'success' && publishResult.data !== null) {
     availableData.publish = publishResult.data
   }
@@ -131,12 +142,14 @@ export async function runPipeline(
   let researchResult: AgentResult<SourcePackage> | null = null
   let scriptResult: AgentResult<string> | null = null
   let voiceResult: AgentResult<VoiceOutput> | null = null
+  let videoResult: AgentResult<VideoOutput> | null = null
   let publishResult: AgentResult<PublishOutput> | null = null
 
   try {
     const research = new ResearchAgent()
     const script = new ScriptAgent()
     const voice = new VoiceAgent()
+    const video = new VideoAgent()
     const publish = new PublishAgent()
 
     const agentOpts = { dryRun: opts?.isDryRun }
@@ -148,7 +161,7 @@ export async function runPipeline(
     if (researchResult.status === 'failed' || !researchResult.data) {
       // Research failed — skip remaining stages
       onEvent?.({ type: 'stage_failed', stage: 'research', state: 'failed', message: researchResult.error, timestamp: new Date().toISOString() })
-      const degradedContext = buildDegradedContext(researchResult, null, null, null)
+      const degradedContext = buildDegradedContext(researchResult, null, null, null, null)
       const totalDurationMs = Date.now() - startMs
 
       await writePipelineRun({
@@ -159,6 +172,7 @@ export async function runPipeline(
         researchResult,
         scriptResult: null,
         voiceResult: null,
+        videoResult: null,
         publishResult: null,
         degradedContext,
         isDryRun: opts?.isDryRun,
@@ -171,6 +185,7 @@ export async function runPipeline(
         research: researchResult,
         script: null,
         voice: null,
+        video: null,
         publish: null,
         degradedContext,
         totalDurationMs,
@@ -186,7 +201,7 @@ export async function runPipeline(
     if (scriptResult.status === 'failed' || !scriptResult.data) {
       // Script failed — skip remaining stages
       onEvent?.({ type: 'stage_failed', stage: 'script', state: 'failed', message: scriptResult.error, timestamp: new Date().toISOString() })
-      const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null)
+      const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null, null)
       const totalDurationMs = Date.now() - startMs
 
       await writePipelineRun({
@@ -197,6 +212,7 @@ export async function runPipeline(
         researchResult,
         scriptResult,
         voiceResult: null,
+        videoResult: null,
         publishResult: null,
         degradedContext,
         isDryRun: opts?.isDryRun,
@@ -209,6 +225,7 @@ export async function runPipeline(
         research: researchResult,
         script: scriptResult,
         voice: null,
+        video: null,
         publish: null,
         degradedContext,
         totalDurationMs,
@@ -224,7 +241,7 @@ export async function runPipeline(
     const voiceQuota = await checkVoiceQuota(config.userId, opts?.userTier ?? 'pro')
     if (!voiceQuota.allowed) {
       onEvent?.({ type: 'pipeline_error', message: 'Voice character quota exceeded for this billing period. Upgrade your plan to continue.', timestamp: new Date().toISOString() })
-      const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null)
+      const degradedContext = buildDegradedContext(researchResult, scriptResult, null, null, null)
       const totalDurationMs = Date.now() - startMs
 
       await writePipelineRun({
@@ -235,6 +252,7 @@ export async function runPipeline(
         researchResult,
         scriptResult,
         voiceResult: null,
+        videoResult: null,
         publishResult: null,
         degradedContext,
         isDryRun: opts?.isDryRun,
@@ -247,6 +265,7 @@ export async function runPipeline(
         research: researchResult,
         script: scriptResult,
         voice: null,
+        video: null,
         publish: null,
         degradedContext,
         totalDurationMs,
@@ -267,16 +286,29 @@ export async function runPipeline(
       ? voiceResult.data.audioUrl
       : ''
 
-    // ── Stage 4: Publish ───────────────────────────────────────────────────
-    // Only attempt publish if we have a real audio URL
+    // ── Stage 4: Video ─────────────────────────────────────────────────────
+    onEvent?.({ type: 'stage_start', stage: 'video', state: 'running', timestamp: new Date().toISOString() })
+    videoResult = await video.run(scriptResult.data, config, audioUrl, runId, agentOpts)
+
+    if (videoResult.status === 'failed' || videoResult.status === 'degraded') {
+      onEvent?.({ type: 'stage_failed', stage: 'video', state: 'failed', message: videoResult.error, timestamp: new Date().toISOString() })
+    } else {
+      onEvent?.({ type: 'stage_complete', stage: 'video', state: 'complete', data: videoResult, timestamp: new Date().toISOString() })
+    }
+
+    const videoUrl = videoResult.status === 'success' && videoResult.data
+      ? videoResult.data.videoUrl
+      : ''
+
+    // ── Stage 5: Publish ───────────────────────────────────────────────────
     onEvent?.({ type: 'stage_start', stage: 'publish', state: 'running', timestamp: new Date().toISOString() })
-    if (audioUrl) {
-      publishResult = await publish.run(audioUrl, topic, config, oauthToken, agentOpts)
+    if (videoUrl) {
+      publishResult = await publish.run(videoUrl, topic, config, oauthToken, agentOpts)
     } else {
       publishResult = {
         status: 'failed',
         data: null,
-        error: 'Publish skipped — audio generation did not complete.',
+        error: 'Publish skipped — video generation did not complete.',
       }
     }
 
@@ -291,16 +323,18 @@ export async function runPipeline(
     // 'complete' when research AND script succeeded (voice/publish may be degraded)
     const anyFailure =
       (voiceResult.status === 'failed') ||
+      (videoResult.status === 'failed') ||
+      (videoResult.status === 'degraded') ||
       (publishResult.status === 'failed') ||
       (publishResult.status === 'degraded')
 
     // research + script are the critical path per spec.
-    // Voice/publish failures are captured in degradedContext but do not fail the pipeline.
+    // Voice/video/publish failures are captured in degradedContext but do not fail the pipeline.
     const finalStatus: PipelineRunStatus = 'complete'
 
     const hasDegraded = anyFailure
     const degradedContext = hasDegraded
-      ? buildDegradedContext(researchResult, scriptResult, voiceResult, publishResult)
+      ? buildDegradedContext(researchResult, scriptResult, voiceResult, videoResult, publishResult)
       : null
 
     const totalDurationMs = Date.now() - startMs
@@ -315,6 +349,7 @@ export async function runPipeline(
       researchResult,
       scriptResult,
       voiceResult,
+      videoResult,
       publishResult,
       degradedContext,
       costSummary,
@@ -328,6 +363,7 @@ export async function runPipeline(
       research: researchResult,
       script: scriptResult,
       voice: voiceResult,
+      video: videoResult,
       publish: publishResult,
       degradedContext,
       totalDurationMs,
@@ -341,6 +377,7 @@ export async function runPipeline(
       researchResult,
       scriptResult,
       voiceResult,
+      videoResult,
       publishResult,
     )
     const totalDurationMs = Date.now() - startMs
@@ -354,6 +391,7 @@ export async function runPipeline(
         researchResult,
         scriptResult,
         voiceResult,
+        videoResult,
         publishResult,
         degradedContext,
         isDryRun: opts?.isDryRun,
@@ -362,12 +400,14 @@ export async function runPipeline(
       // non-fatal — Supabase write failure in error path
     }
 
+    onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
     return {
       runId,
       status: 'failed',
       research: researchResult,
       script: scriptResult,
       voice: voiceResult,
+      video: videoResult,
       publish: publishResult,
       degradedContext,
       totalDurationMs,
@@ -385,6 +425,7 @@ interface WriteArgs {
   researchResult: AgentResult<SourcePackage> | null
   scriptResult: AgentResult<string> | null
   voiceResult: AgentResult<VoiceOutput> | null
+  videoResult: AgentResult<VideoOutput> | null
   publishResult: AgentResult<PublishOutput> | null
   degradedContext: DegradedContext | null
   costSummary?: CostSummary
@@ -403,6 +444,7 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
       research_result: args.researchResult,
       script_result: args.scriptResult,
       voice_result: args.voiceResult,
+      video_result: args.videoResult,
       publish_result: args.publishResult,
       error_message: args.degradedContext?.gapMessages.join('; ') ?? null,
       cost_summary: args.costSummary ?? null,

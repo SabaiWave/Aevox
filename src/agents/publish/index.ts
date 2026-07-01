@@ -8,14 +8,14 @@ function sanitizeTopic(topic: string): string {
 }
 
 async function uploadToYouTube(
-  audioUrl: string,
+  mediaUrl: string,
   topic: string,
   config: ChannelConfig,
   accessToken: string,
   safeTags: string[]
 ): Promise<PublishOutput> {
-  // 1. Fetch the audio file from Supabase storage URL
-  const audioRes = await fetch(audioUrl)
+  // 1. Fetch the media file from Supabase storage URL
+  const audioRes = await fetch(mediaUrl)
   if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`)
   const audioBlob = await audioRes.arrayBuffer()
 
@@ -42,7 +42,7 @@ async function uploadToYouTube(
   // 3. Build multipart body
   const boundary = `boundary_${Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('')}`
   const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
-  const audioPart = `--${boundary}\r\nContent-Type: audio/mpeg\r\n\r\n`
+  const audioPart = `--${boundary}\r\nContent-Type: video/mp4\r\n\r\n`
   const closing = `\r\n--${boundary}--`
 
   const encoder = new TextEncoder()
@@ -92,7 +92,7 @@ async function uploadToYouTube(
 
 export class PublishAgent {
   async run(
-    audioUrl: string,
+    mediaUrl: string,
     topic: string,
     config: ChannelConfig,
     oauthToken: string,
@@ -126,7 +126,7 @@ export class PublishAgent {
         .map(t => t.replace(/[\x00-\x1F<>]/g, '').slice(0, 30))
         .slice(0, 15)
 
-      const data = await uploadToYouTube(audioUrl, topic, config, safeToken, safeTags)
+      const data = await uploadToYouTube(mediaUrl, topic, config, safeToken, safeTags)
 
       return {
         status: 'success',

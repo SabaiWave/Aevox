@@ -15,7 +15,7 @@ export default async function PipelinePage({ params }: PageProps) {
   const { data: row, error } = await supabase
     .from('videos')
     .select(
-      'id, user_id, config_id, topic, status, research_result, script_result, voice_result, publish_result, error_message, created_at, updated_at',
+      'id, user_id, config_id, topic, status, research_result, script_result, voice_result, video_result, publish_result, error_message, created_at, updated_at',
     )
     .eq('id', runId)
     .single()
@@ -75,6 +75,7 @@ export default async function PipelinePage({ params }: PageProps) {
     researchResult: row.research_result ?? null,
     scriptResult: row.script_result ?? null,
     voiceResult: row.voice_result ?? null,
+    videoResult: row.video_result ?? null,
     publishResult: row.publish_result ?? null,
     errorMessage: row.error_message ?? null,
     createdAt: row.created_at,

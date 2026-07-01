@@ -17,6 +17,7 @@ const STAGE_LABEL_MAP: Record<PipelineStage, string> = {
   research: 'Research',
   script: 'Script',
   voice: 'Voice',
+  video: 'Video',
   publish: 'Publish',
 }
 

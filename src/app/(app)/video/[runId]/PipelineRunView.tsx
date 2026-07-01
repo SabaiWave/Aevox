@@ -50,6 +50,18 @@ function deriveStages(run: PipelineRun): StageInfo[] {
       durationMs: run.voiceResult?.durationMs,
     },
     {
+      stage: 'video' as PipelineStage,
+      state: run.videoResult
+        ? run.videoResult.status === 'success'
+          ? 'complete'
+          : run.videoResult.status === 'degraded'
+            ? 'degraded'
+            : 'failed'
+        : 'pending',
+      errorMessage: run.videoResult?.error,
+      durationMs: run.videoResult?.durationMs,
+    },
+    {
       stage: 'publish' as PipelineStage,
       state: run.publishResult
         ? run.publishResult.status === 'success'
@@ -72,11 +84,12 @@ function initialStages(run: PipelineRun): StageInfo[] {
     { stage: 'research', state: 'pending' },
     { stage: 'script', state: 'pending' },
     { stage: 'voice', state: 'pending' },
+    { stage: 'video', state: 'pending' },
     { stage: 'publish', state: 'pending' },
   ]
 }
 
-const STAGE_ORDER: PipelineStage[] = ['research', 'script', 'voice', 'publish']
+const STAGE_ORDER: PipelineStage[] = ['research', 'script', 'voice', 'video', 'publish']
 
 function stageIndex(stage: PipelineStage): number {
   return STAGE_ORDER.indexOf(stage)
@@ -131,6 +144,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
             ...(targetStage === 'research' && { researchResult: result as PipelineRun['researchResult'] }),
             ...(targetStage === 'script' && { scriptResult: result as PipelineRun['scriptResult'] }),
             ...(targetStage === 'voice' && { voiceResult: result as PipelineRun['voiceResult'] }),
+            ...(targetStage === 'video' && { videoResult: result as PipelineRun['videoResult'] }),
             ...(targetStage === 'publish' && { publishResult: result as PipelineRun['publishResult'] }),
           }))
         }
@@ -180,6 +194,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
   const researchIdx = stageIndex('research')
   const scriptIdx = stageIndex('script')
   const voiceIdx = stageIndex('voice')
+  const videoIdx = stageIndex('video')
   const publishIdx = stageIndex('publish')
 
   return (
@@ -316,6 +331,12 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
             result={run.voiceResult}
             state={stages[voiceIdx]?.state ?? 'pending'}
             errorMessage={stages[voiceIdx]?.errorMessage}
+          />
+          <AgentResultCard
+            stage="video"
+            result={run.videoResult}
+            state={stages[videoIdx]?.state ?? 'pending'}
+            errorMessage={stages[videoIdx]?.errorMessage}
           />
           <AgentResultCard
             stage="publish"

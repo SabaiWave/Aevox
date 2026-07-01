@@ -21,6 +21,8 @@ const required = [
   'STRIPE_WEBHOOK_SECRET',
   'STRIPE_STARTER_PRICE_ID',
   'STRIPE_PRO_PRICE_ID',
+  // Phase 7 — Video generation
+  'FAL_KEY',
 ]
 
 if (process.env.VERCEL) {
@@ -57,6 +59,8 @@ const csp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
+  // FFmpeg packages use dynamic require() for platform-specific binaries — must not be bundled
+  serverExternalPackages: ['@ffmpeg-installer/ffmpeg', 'fluent-ffmpeg'],
   async headers() {
     return [
       {

@@ -26,6 +26,7 @@ interface SendEmailOptions {
 }
 
 export async function sendEmail({ from, to, subject, html, text }: SendEmailOptions): Promise<void> {
+  if (!from) throw new Error('sendEmail: from address is empty — check NEXT_PUBLIC_APP_URL')
   const res = await fetch(BREVO_API, {
     method: 'POST',
     headers: {

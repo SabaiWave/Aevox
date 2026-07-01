@@ -17,7 +17,7 @@ const CHAR_CAPS: Record<string, number> = {
 }
 
 const schema = z.object({
-  action: z.enum(['fill_videos', 'fill_chars', 'clear']),
+  action: z.enum(['fill_videos', 'fill_chars', 'clear', 'clear_real', 'clear_dry', 'clear_all']),
 })
 
 export async function POST(req: NextRequest) {
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     const toInsert = Math.max(0, cap - (existing ?? 0))
 
     if (toInsert === 0) {
-      return Response.json({ success: true, count: 0 })
+      return Response.json({ success: true, count: 0, warning: 'Already at cap — no rows inserted.' })
     }
 
     const rows = Array.from({ length: toInsert }, () => ({
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     const needed = Math.max(0, cap + 1 - existingChars)
     if (needed === 0) {
-      return Response.json({ success: true, count: 0 })
+      return Response.json({ success: true, count: 0, warning: 'Already at cap — no rows inserted.' })
     }
 
     const { error: insertErr } = await supabase.from('videos').insert({
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ success: true, count: 1 })
   }
 
-  // ── 6c. clear ─────────────────────────────────────────────────────────────
+  // ── 6c. clear (sim rows only) ─────────────────────────────────────────────
   if (action === 'clear') {
     const { count: deletedCount, error: deleteErr } = await supabase
       .from('videos')
@@ -171,6 +171,54 @@ export async function POST(req: NextRequest) {
 
     if (deleteErr) {
       log.error('[quota-sim] clear delete failed', { error: deleteErr.message })
+      return Response.json({ error: 'Delete failed' }, { status: 500 })
+    }
+
+    return Response.json({ success: true, count: deletedCount ?? 0 })
+  }
+
+  // ── 6d. clear_real (real runs — quota reset) ───────────────────────────────
+  if (action === 'clear_real') {
+    const { count: deletedCount, error: deleteErr } = await supabase
+      .from('videos')
+      .delete({ count: 'exact' })
+      .eq('user_id', userUuid)
+      .eq('is_dry_run', false)
+      .eq('is_simulated', false)
+
+    if (deleteErr) {
+      log.error('[quota-sim] clear_real delete failed', { error: deleteErr.message })
+      return Response.json({ error: 'Delete failed' }, { status: 500 })
+    }
+
+    return Response.json({ success: true, count: deletedCount ?? 0 })
+  }
+
+  // ── 6e. clear_dry (dry/test run rows) ─────────────────────────────────────
+  if (action === 'clear_dry') {
+    const { count: deletedCount, error: deleteErr } = await supabase
+      .from('videos')
+      .delete({ count: 'exact' })
+      .eq('user_id', userUuid)
+      .eq('is_dry_run', true)
+
+    if (deleteErr) {
+      log.error('[quota-sim] clear_dry delete failed', { error: deleteErr.message })
+      return Response.json({ error: 'Delete failed' }, { status: 500 })
+    }
+
+    return Response.json({ success: true, count: deletedCount ?? 0 })
+  }
+
+  // ── 6f. clear_all (nuke all videos for this user) ─────────────────────────
+  if (action === 'clear_all') {
+    const { count: deletedCount, error: deleteErr } = await supabase
+      .from('videos')
+      .delete({ count: 'exact' })
+      .eq('user_id', userUuid)
+
+    if (deleteErr) {
+      log.error('[quota-sim] clear_all delete failed', { error: deleteErr.message })
       return Response.json({ error: 'Delete failed' }, { status: 500 })
     }
 

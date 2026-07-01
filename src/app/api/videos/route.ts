@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { configId, topic, dryRun } = parsed.data
+  const { configId, topic, dryRun: dryRunFromBody } = parsed.data
+  const dryRun = dryRunFromBody || process.env.DRY_RUN === 'true'
 
   // ── 1a. Validate dryRun — admin only ──────────────────────────────────────
   if (dryRun) {
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
   const TIER_CAPS: Record<string, number> = { free: 2, starter: 8 }
   const cap = TIER_CAPS[tier]  // undefined for pro → no quota
 
-  if (!dryRun && cap !== undefined) {
+  if (cap !== undefined) {
     const monthStart = new Date()
     monthStart.setUTCDate(1)
     monthStart.setUTCHours(0, 0, 0, 0)
@@ -98,14 +99,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3b. Voice quota pre-check ─────────────────────────────────────────────
-  if (!dryRun) {
-    const voiceQuota = await checkVoiceQuota(userUuid, tier)
-    if (!voiceQuota.allowed) {
-      return Response.json(
-        { error: 'quota_exceeded', code: 'VOICE_QUOTA_EXCEEDED', tier, charsUsed: voiceQuota.used, charsLimit: voiceQuota.limit ?? null },
-        { status: 402 },
-      )
-    }
+  const voiceQuota = await checkVoiceQuota(userUuid, tier)
+  if (!voiceQuota.allowed) {
+    return Response.json(
+      { error: 'quota_exceeded', code: 'VOICE_QUOTA_EXCEEDED', tier, charsUsed: voiceQuota.used, charsLimit: voiceQuota.limit ?? null },
+      { status: 402 },
+    )
   }
 
   // ── 4. Fetch config from Supabase (scoped to this user) ───────────────────

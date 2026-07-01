@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { SupportNotesEditor } from './SupportNotesEditor'
+import type { SupportNote } from './SupportNotesEditor'
 import type { StageState } from '@/types'
 
 interface Run {
@@ -17,7 +18,7 @@ interface UserRowProps {
   email: string
   tier: string
   joinedFormatted: string
-  supportNotes: string | null
+  supportNotes: SupportNote[] | null
   runs: Run[]
 }
 

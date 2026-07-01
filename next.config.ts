@@ -30,17 +30,28 @@ if (process.env.VERCEL) {
   }
 }
 
+// Clerk serves scripts from clerk.[your-domain] in production (custom proxy).
+// Derive that origin from NEXT_PUBLIC_APP_URL so no extra env var is needed.
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+const baseDomain = appUrl.replace(/^https?:\/\/(www\.)?/, '')
+const clerkProxyOrigin = baseDomain ? `https://clerk.${baseDomain}` : ''
+
+const clerkOrigins = [
+  'https://*.clerk.accounts.dev',
+  ...(clerkProxyOrigin ? [clerkProxyOrigin] : []),
+].join(' ')
+
 const csp = [
   "default-src 'self'",
-  // Clerk and Stripe inject client-side scripts
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net",
+  // Clerk and Stripe inject client-side scripts; 'unsafe-inline' required for React streaming
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com ${clerkOrigins} https://cdn.jsdelivr.net`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   // Browser-side API connections: Supabase realtime, Clerk, Stripe
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev https://api.clerk.dev https://js.stripe.com https://*.stripe.com",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${clerkOrigins} https://api.clerk.dev https://js.stripe.com https://*.stripe.com`,
   // Clerk and Stripe render iframes for their hosted UI
-  "frame-src https://js.stripe.com https://*.clerk.accounts.dev",
+  `frame-src https://js.stripe.com ${clerkOrigins}`,
   "frame-ancestors 'none'",
   "object-src 'none'",
 ].join('; ')

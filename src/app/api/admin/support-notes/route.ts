@@ -8,7 +8,7 @@ import { log } from '@/lib/logger'
 
 const schema = z.object({
   userId: z.string().uuid(),
-  notes: z.string().max(2000),
+  note: z.string().min(1).max(2000),
 })
 
 export async function POST(req: NextRequest) {
@@ -50,14 +50,32 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Invalid request' }, { status: 400 })
   }
 
-  const { userId: targetUserId, notes } = parsed.data
+  const { userId: targetUserId, note } = parsed.data
 
-  // ── 5. Update support_notes ────────────────────────────────────────────────
+  // ── 5. Fetch existing notes, append new entry ──────────────────────────────
   const supabase = getSupabaseServerClient()
+
+  const { data: userData, error: fetchErr } = await supabase
+    .from('users')
+    .select('support_notes')
+    .eq('id', targetUserId)
+    .single()
+
+  if (fetchErr) {
+    log.error('[support-notes] fetch failed', { error: fetchErr.message })
+    return Response.json({ error: 'Fetch failed' }, { status: 500 })
+  }
+
+  const existing: Array<{ ts: string; note: string }> = Array.isArray(userData?.support_notes)
+    ? (userData.support_notes as Array<{ ts: string; note: string }>)
+    : []
+
+  const newEntry = { ts: new Date().toISOString(), note }
+  const updated = [newEntry, ...existing]
 
   const { error: updateErr } = await supabase
     .from('users')
-    .update({ support_notes: notes })
+    .update({ support_notes: updated })
     .eq('id', targetUserId)
 
   if (updateErr) {
@@ -65,5 +83,5 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Update failed' }, { status: 500 })
   }
 
-  return Response.json({ success: true })
+  return Response.json({ success: true, entry: newEntry })
 }

@@ -16,6 +16,7 @@ export default async function LandingNav() {
         <div className={styles.desktop}>
           {isAuthed ? (
             <>
+              <Link href="/" className={styles.ghost}>Home</Link>
               <Link href="/dashboard" className={styles.ghost}>Dashboard</Link>
               <LandingNavUserButton />
             </>

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { isAdmin } from '@/lib/is-admin'
 import { auth } from '@/lib/auth'
@@ -194,7 +194,7 @@ const sectionHeadingStyle: React.CSSProperties = {
 
 export default async function AdminDevPage() {
   const adminOk = await isAdmin()
-  if (!adminOk) redirect('/')
+  if (!adminOk) notFound()
 
   return (
     <div
@@ -239,9 +239,9 @@ export default async function AdminDevPage() {
         </Suspense>
       </section>
 
-      {/* Section 2: Quota Simulation */}
+      {/* Section 2: Dev Data Tools */}
       <section style={sectionStyle}>
-        <h2 style={sectionHeadingStyle}>Quota Simulation</h2>
+        <h2 style={sectionHeadingStyle}>Dev Data Tools</h2>
         <p
           style={{
             fontSize: '0.875rem',
@@ -249,7 +249,7 @@ export default async function AdminDevPage() {
             margin: 0,
           }}
         >
-          Insert or clear fake <code>videos</code> rows to trigger video or char quota walls.
+          Simulate quota load or clean up test data for your account.
         </p>
         <QuotaSimButtons />
       </section>

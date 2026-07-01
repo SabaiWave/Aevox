@@ -115,7 +115,7 @@ export function DevTriggerForm({ configs }: Props) {
             onChange={e => setIsDryRun(e.target.checked)}
             style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
           />
-          Dry run
+          Test run
         </label>
       </div>
 

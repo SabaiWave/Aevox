@@ -33,7 +33,10 @@ export default function LandingNavMobile({ isAuthed }: Props) {
 
             <div className={styles.drawerLinks}>
               {isAuthed ? (
-                <Link href="/dashboard" className={styles.drawerLink} onClick={close}>Dashboard</Link>
+                <>
+                  <Link href="/" className={styles.drawerLink} onClick={close}>Home</Link>
+                  <Link href="/dashboard" className={styles.drawerLink} onClick={close}>Dashboard</Link>
+                </>
               ) : (
                 <>
                   <Link href="/sign-in" className={styles.drawerLink} onClick={close}>Sign in</Link>

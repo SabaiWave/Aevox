@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic'
 
-import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { isAdmin } from '@/lib/is-admin'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { UserRow } from './UserRow'
+import type { SupportNote } from './SupportNotesEditor'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -17,7 +18,7 @@ function formatDate(iso: string): string {
 
 export default async function AdminPage() {
   const adminOk = await isAdmin()
-  if (!adminOk) redirect('/')
+  if (!adminOk) notFound()
 
   const supabase = getSupabaseServerClient()
 
@@ -125,7 +126,7 @@ export default async function AdminPage() {
               email={(user.email as string | null) ?? '—'}
               tier={(user.tier as string | null) ?? 'free'}
               joinedFormatted={formatDate(user.created_at as string)}
-              supportNotes={(user.support_notes as string | null) ?? null}
+              supportNotes={(user.support_notes as SupportNote[] | null) ?? null}
               runs={runsByUser[user.id as string] ?? []}
             />
           ))}

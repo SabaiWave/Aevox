@@ -1,7 +1,6 @@
 import React from 'react'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  // TODO: convert to Tailwind utilities before launch
   return (
     <div
       style={{

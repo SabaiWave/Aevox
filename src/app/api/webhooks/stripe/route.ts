@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
       const customerId = typeof subscription.customer === 'string' ? subscription.customer : null
       const priceId = subscription.items.data[0]?.price?.id ?? ''
       const tier = tierFromPriceId(priceId)
+      const periodEnd = subscription.items.data[0]?.current_period_end
+      const subscriptionCancelAt = subscription.cancel_at
+        ? new Date(subscription.cancel_at * 1000).toISOString()
+        : subscription.cancel_at_period_end && periodEnd
+        ? new Date(periodEnd * 1000).toISOString()
+        : null
 
       if (!customerId) {
         console.warn('[webhook/stripe] subscription event missing customer ID — skipping')
@@ -84,7 +90,7 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabase
         .from('users')
-        .update({ tier })
+        .update({ tier, subscription_cancel_at: subscriptionCancelAt })
         .eq('stripe_customer_id', customerId)
 
       if (error) {
@@ -105,7 +111,7 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabase
         .from('users')
-        .update({ tier: 'free' })
+        .update({ tier: 'free', subscription_cancel_at: null })
         .eq('stripe_customer_id', customerId)
 
       if (error) {

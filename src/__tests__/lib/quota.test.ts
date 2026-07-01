@@ -17,9 +17,9 @@ const USER_UUID = 'deadbeef-dead-beef-dead-beefdeadbeef'
 
 /**
  * Wires mockFrom to resolve with the given rows (or error) for the
- * usage_logs chain: .select('chars_used').eq(...).eq(...).gte(...)
+ * videos chain: .select('chars_used').eq('user_id').eq('is_dry_run').gte('created_at')
  */
-function wireUsageLogs(rows: Array<{ chars_used: number }> | null, error: { message: string } | null = null) {
+function wireVideos(rows: Array<{ chars_used: number }> | null, error: { message: string } | null = null) {
   const gteChain = jest.fn().mockResolvedValue({ data: rows, error })
   const eqChain2 = jest.fn().mockReturnValue({ gte: gteChain })
   const eqChain1 = jest.fn().mockReturnValue({ eq: eqChain2 })
@@ -44,7 +44,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('unknown tier queries DB and applies free-tier cap (fail safe)', async () => {
-    wireUsageLogs([{ chars_used: 5000 }])
+    wireVideos([{ chars_used: 5000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'enterprise')
 
@@ -55,7 +55,7 @@ describe('checkVoiceQuota', () => {
   // ─── Free tier ────────────────────────────────────────────────────────────
 
   it('free tier under limit returns allowed: true with correct used and limit', async () => {
-    wireUsageLogs([{ chars_used:5000 }])
+    wireVideos([{ chars_used:5000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -63,7 +63,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('free tier at limit returns allowed: false', async () => {
-    wireUsageLogs([{ chars_used:10_000 }])
+    wireVideos([{ chars_used:10_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -71,7 +71,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('free tier over limit returns allowed: false', async () => {
-    wireUsageLogs([{ chars_used:12_000 }])
+    wireVideos([{ chars_used:12_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -81,7 +81,7 @@ describe('checkVoiceQuota', () => {
   // ─── Starter tier ─────────────────────────────────────────────────────────
 
   it('starter tier under limit returns allowed: true with limit 100000', async () => {
-    wireUsageLogs([{ chars_used:50_000 }])
+    wireVideos([{ chars_used:50_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'starter')
 
@@ -89,7 +89,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('starter tier at limit returns allowed: false', async () => {
-    wireUsageLogs([{ chars_used:100_000 }])
+    wireVideos([{ chars_used:100_000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'starter')
 
@@ -99,7 +99,7 @@ describe('checkVoiceQuota', () => {
   // ─── DB edge cases ────────────────────────────────────────────────────────
 
   it('empty rows returns allowed: true with used: 0', async () => {
-    wireUsageLogs([])
+    wireVideos([])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -107,7 +107,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('multiple rows are summed correctly', async () => {
-    wireUsageLogs([{ chars_used:1000 }, { chars_used:2500 }, { chars_used:3000 }])
+    wireVideos([{ chars_used:1000 }, { chars_used:2500 }, { chars_used:3000 }])
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -115,7 +115,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('null data is treated as empty — returns allowed: true with used: 0', async () => {
-    wireUsageLogs(null)
+    wireVideos(null)
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -125,7 +125,7 @@ describe('checkVoiceQuota', () => {
   // ─── Error handling ───────────────────────────────────────────────────────
 
   it('Supabase error returns fail-open: allowed: true with used: 0 and cap', async () => {
-    wireUsageLogs(null, { message: 'connection refused' })
+    wireVideos(null, { message: 'connection refused' })
 
     const result = await checkVoiceQuota(USER_UUID, 'free')
 
@@ -133,7 +133,7 @@ describe('checkVoiceQuota', () => {
   })
 
   it('Supabase error on starter tier uses starter cap in fail-open result', async () => {
-    wireUsageLogs(null, { message: 'timeout' })
+    wireVideos(null, { message: 'timeout' })
 
     const result = await checkVoiceQuota(USER_UUID, 'starter')
 

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
-import { LayoutDashboard, Settings, Zap } from 'lucide-react'
+import { LayoutDashboard, Settings, Zap, ShieldCheck, Terminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -12,12 +12,16 @@ const navItems = [
   { href: '/configs', label: 'Channels', icon: Settings },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  showAdmin?: boolean
+}
+
+export default function Sidebar({ showAdmin = false }: SidebarProps) {
   const pathname = usePathname()
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">Klipto</div>
+      <Link href="/" className="sidebar-brand">KLIPTO</Link>
       <nav>
         {navItems.map(({ href, label, icon: Icon }) => (
           <Link
@@ -29,6 +33,25 @@ export default function Sidebar() {
             <span>{label}</span>
           </Link>
         ))}
+        {showAdmin && (
+          <>
+            <Link
+              href="/admin"
+              className={cn('nav-item', pathname === '/admin' && 'nav-item--active')}
+            >
+              <ShieldCheck size={16} />
+              <span>Admin</span>
+            </Link>
+            <Link
+              href="/admin/dev"
+              className={cn('nav-item', pathname === '/admin/dev' && 'nav-item--active')}
+              style={{ fontSize: '0.8125rem' }}
+            >
+              <Terminal size={16} />
+              <span>Dev Console</span>
+            </Link>
+          </>
+        )}
       </nav>
       <div style={{ marginTop: 'auto', padding: '1rem' }}>
         <UserButton />

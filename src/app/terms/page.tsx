@@ -1,0 +1,166 @@
+import Link from 'next/link'
+import AppFooter from '@/components/layout/AppFooter'
+import LandingNav from '@/components/layout/LandingNav'
+import styles from './terms.module.css'
+
+export const metadata = {
+  title: 'Terms of Service — Klipto',
+}
+
+export default function TermsPage() {
+  return (
+    <>
+      <LandingNav />
+      <div className={styles.container}>
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <h1 className={styles.title}>Terms of Service</h1>
+            <p className={styles.lastUpdated}>Last updated: July 2026</p>
+          </div>
+
+          <p className={styles.intro}>
+            By accessing or using Klipto (operated by Sabai Wave LLC), you agree to be bound by
+            these Terms of Service. If you do not agree, do not use the service.
+          </p>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>1. Description of Service</h2>
+            <p className={styles.sectionBody}>
+              Klipto is an AI-powered content pipeline tool for faceless YouTube creators. Given a
+              topic and channel configuration, Klipto automates research, script writing, voice
+              narration, and YouTube publishing. Klipto does not guarantee specific views, reach, or
+              monetization outcomes.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>2. Accounts</h2>
+            <p className={styles.sectionBody}>
+              You must create an account to use Klipto. You are responsible for maintaining the
+              confidentiality of your account credentials and for all activities that occur under
+              your account. You must provide accurate information during registration and keep your
+              account information up to date.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>3. Billing and Subscriptions</h2>
+            <p className={styles.sectionBody}>
+              Klipto offers a free tier (2 pipeline runs), a Starter plan ($49/month), and a Pro
+              plan ($99/month). Paid plans are billed monthly in advance. Subscription fees are
+              non-refundable except where required by applicable law.
+              <br /><br />
+              You may cancel your subscription at any time from your account settings. Cancellation
+              takes effect at the end of the current billing period — you retain access until then.
+              We reserve the right to modify pricing with reasonable notice to registered users.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>4. Use of Service</h2>
+            <p className={styles.sectionBody}>
+              You may use Klipto only for lawful purposes and in accordance with these terms. You
+              are responsible for all content generated through your account and for ensuring your
+              use complies with applicable laws and platform policies, including YouTube&apos;s Terms
+              of Service and Community Guidelines.
+              <br /><br />
+              You may not use the service to generate misleading, harmful, infringing, or spam
+              content. You may not attempt to circumvent quota limits, reverse-engineer the service,
+              or resell access to Klipto without written permission.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>5. YouTube Integration</h2>
+            <p className={styles.sectionBody}>
+              When you connect a YouTube channel, you authorize Klipto to upload videos and set
+              metadata on your behalf using YouTube&apos;s API. You remain solely responsible for
+              the content published to your channel and its compliance with YouTube&apos;s policies.
+              Klipto is not responsible for videos removed, channels suspended, or monetization
+              affected by YouTube policy enforcement.
+              <br /><br />
+              You may revoke Klipto&apos;s access to your YouTube channel at any time by
+              disconnecting it from your Klipto account settings or via your{' '}
+              <a
+                href="https://myaccount.google.com/permissions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.link}
+              >
+                Google account permissions
+              </a>
+              .
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>6. Intellectual Property</h2>
+            <p className={styles.sectionBody}>
+              Scripts, voice narrations, and other content generated by Klipto pipelines are
+              licensed to you for use on your YouTube channel. You retain ownership of your channel
+              configurations and any original creative direction you provide. The Klipto platform,
+              software, and branding are owned by Sabai Wave LLC and protected by intellectual
+              property laws.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>7. Limitation of Liability</h2>
+            <p className={styles.sectionBody}>
+              To the fullest extent permitted by applicable law, Sabai Wave LLC shall not be liable
+              for any indirect, incidental, special, consequential, or punitive damages resulting
+              from your use of the service, including but not limited to loss of revenue, channel
+              demonetization, or third-party API downtime.{' '}
+              <strong>
+                In no event shall Sabai Wave LLC&apos;s total liability to you exceed the amount you
+                paid for the service in the three months preceding the claim.
+              </strong>
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>8. Termination</h2>
+            <p className={styles.sectionBody}>
+              We reserve the right to suspend or terminate your account at our discretion if you
+              violate these terms or engage in activity harmful to other users or the service. You
+              may terminate your account at any time by contacting us. Upon termination, your access
+              to the service will cease and your data may be deleted in accordance with our{' '}
+              <Link href="/privacy" className={styles.link}>Privacy Policy</Link>.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>9. Changes to Terms</h2>
+            <p className={styles.sectionBody}>
+              We reserve the right to modify these terms at any time. We will notify registered
+              users of material changes via email. Continued use of the service after changes
+              constitutes acceptance of the revised terms.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>10. Governing Law</h2>
+            <p className={styles.sectionBody}>
+              These terms are governed by the laws of the United States. Any disputes shall be
+              resolved through binding arbitration in accordance with the rules of the American
+              Arbitration Association.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>11. Contact</h2>
+            <p className={styles.sectionBody}>
+              Questions about these terms? Contact us via our{' '}
+              <Link href="/contact" className={styles.link}>contact form</Link> or email{' '}
+              <a href="mailto:legal@klipto.ai" className={styles.link}>
+                legal@klipto.ai
+              </a>
+              .
+            </p>
+          </section>
+        </div>
+      </div>
+      <AppFooter />
+    </>
+  )
+}

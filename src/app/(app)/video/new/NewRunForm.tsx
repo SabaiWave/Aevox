@@ -90,15 +90,17 @@ export function NewRunForm({ configs, isAdmin }: Props) {
             ⚡ Quick fill
           </button>
           {isAdmin && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', color: isDryRun ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
-              <input
-                type="checkbox"
-                checked={isDryRun}
-                onChange={e => setIsDryRun(e.target.checked)}
-                style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-              />
-              Dry run
-            </label>
+            <Tooltip content="Fixture data, no real API calls, is_dry_run=true (won't count against quota). Use in prod to test without burning credits. Locally, DRY_RUN env does this globally.">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', color: isDryRun ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
+                <input
+                  type="checkbox"
+                  checked={isDryRun}
+                  onChange={e => setIsDryRun(e.target.checked)}
+                  style={{ accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                />
+                Test run
+              </label>
+            </Tooltip>
           )}
         </div>
       )}

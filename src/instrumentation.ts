@@ -32,7 +32,9 @@ function logStartup() {
     STRIPE_STARTER_PRICE_ID:           !!process.env.STRIPE_STARTER_PRICE_ID,
     STRIPE_PRO_PRICE_ID:               !!process.env.STRIPE_PRO_PRICE_ID,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-    // Phase 6 — Observability (add here)
+    // Phase 6 — Email + Observability
+    BREVO_API_KEY:                     !!process.env.BREVO_API_KEY,
+    SUPPORT_EMAIL:                     !!process.env.SUPPORT_EMAIL,
   }
 
   const required = [
@@ -82,6 +84,9 @@ function logStartup() {
     console.log(fmt('STRIPE_STARTER_PRICE_ID',       'STRIPE_STARTER_PRICE_ID',       true))
     console.log(fmt('STRIPE_PRO_PRICE_ID',           'STRIPE_PRO_PRICE_ID',           true))
     console.log(fmt('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'))
+    console.log('  ·')
+    console.log(fmt('BREVO_API_KEY',                  'BREVO_API_KEY'))
+    console.log(fmt('SUPPORT_EMAIL',                  'SUPPORT_EMAIL'))
     console.log(`  ${'DRY_RUN'.padEnd(36)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
     console.log(`  ${'ADMIN_USER_IDS'.padEnd(36)}${process.env.ADMIN_USER_IDS ? 'set' : 'not set — admin features disabled'}`)
     console.log('─────────────────────────────────────────────────\n')

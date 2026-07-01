@@ -49,6 +49,9 @@ jest.mock('@/lib/quota', () => ({
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
 import { POST } from '@/app/api/videos/route'
+import { isAdmin } from '@/lib/is-admin'
+
+const mockIsAdmin = isAdmin as unknown as jest.Mock
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +126,17 @@ function setupHappyPathMocks(): void {
         insert: jest.fn().mockResolvedValue({ error: null }),
       }
     }
+    if (table === 'usage_logs') {
+      return {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              gte: jest.fn().mockResolvedValue({ count: 0, error: null }),
+            }),
+          }),
+        }),
+      }
+    }
     return {}
   })
 }
@@ -136,6 +150,7 @@ describe('POST /api/pipeline', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockIsAdmin.mockResolvedValue(true)  // dry-run gating requires admin
     mockCheckVoiceQuota.mockResolvedValue({ allowed: true, used: 0, limit: 10_000 })
   })
 
@@ -452,6 +467,9 @@ describe('POST /api/pipeline', () => {
 
   describe('quota gating', () => {
     it('returns 402 with VOICE_QUOTA_EXCEEDED when voice quota is exhausted', async () => {
+      const prevDryRun = process.env.DRY_RUN
+      process.env.DRY_RUN = 'false'
+
       mockAuth.mockResolvedValue({ userId: CLERK_USER_ID })
       mockCheckVoiceQuota.mockResolvedValue({ allowed: false, used: 10_000, limit: 10_000 })
 
@@ -481,6 +499,7 @@ describe('POST /api/pipeline', () => {
 
       const res = await POST(makeRequest({ configId: VALID_CONFIG_UUID, topic: VALID_TOPIC }))
 
+      process.env.DRY_RUN = prevDryRun
       expect(res.status).toBe(402)
       const body = await res.json()
       expect(body.code).toBe('VOICE_QUOTA_EXCEEDED')

@@ -148,7 +148,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(res.status).toBe(200)
     expect(mockFrom).toHaveBeenCalledWith('users')
-    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'free' })
+    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'free', subscription_cancel_at: null })
     expect(mockEq).toHaveBeenCalledWith('stripe_customer_id', 'cus_abc123')
   })
 
@@ -164,7 +164,7 @@ describe('POST /api/webhooks/stripe', () => {
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
-    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'starter' })
+    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'starter', subscription_cancel_at: null })
     expect(mockEq).toHaveBeenCalledWith('stripe_customer_id', 'cus_abc123')
   })
 
@@ -180,7 +180,7 @@ describe('POST /api/webhooks/stripe', () => {
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
-    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'pro' })
+    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'pro', subscription_cancel_at: null })
     expect(mockEq).toHaveBeenCalledWith('stripe_customer_id', 'cus_abc123')
   })
 
@@ -196,6 +196,6 @@ describe('POST /api/webhooks/stripe', () => {
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
-    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'free' })
+    expect(mockUpdate).toHaveBeenCalledWith({ tier: 'free', subscription_cancel_at: null })
   })
 })

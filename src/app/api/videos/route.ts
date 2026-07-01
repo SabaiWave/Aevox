@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   const TIER_CAPS: Record<string, number> = { free: 2, starter: 8 }
   const cap = TIER_CAPS[tier]  // undefined for pro → no quota
 
-  if (cap !== undefined) {
+  if (!dryRun && cap !== undefined) {
     const monthStart = new Date()
     monthStart.setUTCDate(1)
     monthStart.setUTCHours(0, 0, 0, 0)
@@ -98,8 +98,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 3b. Voice quota pre-check ─────────────────────────────────────────────
-  const voiceQuota = await checkVoiceQuota(userUuid, tier)
+  // ── 3b. Voice quota pre-check (skip for dry runs) ────────────────────────
+  const voiceQuota = !dryRun ? await checkVoiceQuota(userUuid, tier) : { allowed: true }
   if (!voiceQuota.allowed) {
     return Response.json(
       { error: 'quota_exceeded', code: 'VOICE_QUOTA_EXCEEDED', tier, charsUsed: voiceQuota.used, charsLimit: voiceQuota.limit ?? null },

@@ -1,5 +1,8 @@
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+const mockSelectSingle = jest.fn()
+const mockSelectEq = jest.fn()
+const mockSelect = jest.fn()
 const mockUpdateEq = jest.fn()
 const mockUpdate = jest.fn()
 const mockFrom = jest.fn()
@@ -48,7 +51,7 @@ const mockLog = log as { info: jest.Mock; warn: jest.Mock; error: jest.Mock }
 const VALID_USER_ID = '550e8400-e29b-41d4-a716-446655440000'
 const VALID_NOTES = 'User reported billing issue on 2026-06-30.'
 
-function makeRequest(body: Record<string, unknown> = { userId: VALID_USER_ID, notes: VALID_NOTES }): Request {
+function makeRequest(body: Record<string, unknown> = { userId: VALID_USER_ID, note: VALID_NOTES }): Request {
   return new Request('http://localhost/api/admin/support-notes', {
     method: 'POST',
     headers: {
@@ -71,10 +74,14 @@ describe('POST /api/admin/support-notes', () => {
     mockIsAdmin.mockResolvedValue(true)
     mockCheckRateLimit.mockReturnValue({ limited: false, retryAfterSeconds: 0 })
 
-    // Default update chain: from('users').update({ support_notes }).eq('id', targetUserId)
+    // Select chain: from('users').select('support_notes').eq('id', targetUserId).single()
+    mockSelectSingle.mockResolvedValue({ data: { support_notes: [] }, error: null })
+    mockSelectEq.mockReturnValue({ single: mockSelectSingle })
+    mockSelect.mockReturnValue({ eq: mockSelectEq })
+    // Update chain: from('users').update({ support_notes }).eq('id', targetUserId)
     mockUpdateEq.mockResolvedValue({ error: null })
     mockUpdate.mockReturnValue({ eq: mockUpdateEq })
-    mockFrom.mockReturnValue({ update: mockUpdate })
+    mockFrom.mockReturnValue({ select: mockSelect, update: mockUpdate })
   })
 
   // ── Auth / Guard ───────────────────────────────────────────────────────────
@@ -123,7 +130,7 @@ describe('POST /api/admin/support-notes', () => {
   // ── Validation ─────────────────────────────────────────────────────────────
 
   it('returns 400 when userId is missing', async () => {
-    const res = await POST(makeRequest({ notes: VALID_NOTES }) as never)
+    const res = await POST(makeRequest({ note: VALID_NOTES }) as never)
 
     expect(res.status).toBe(400)
     const body = await res.json()
@@ -138,16 +145,16 @@ describe('POST /api/admin/support-notes', () => {
     expect(body.error).toBe('Invalid request')
   })
 
-  it('returns 400 when notes exceed 2000 characters', async () => {
+  it('returns 400 when note exceeds 2000 characters', async () => {
     const tooLong = 'x'.repeat(2001)
-    const res = await POST(makeRequest({ userId: VALID_USER_ID, notes: tooLong }) as never)
+    const res = await POST(makeRequest({ userId: VALID_USER_ID, note: tooLong }) as never)
 
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(body.error).toBe('Invalid request')
   })
 
-  it('returns 400 when notes field is missing', async () => {
+  it('returns 400 when note field is missing', async () => {
     const res = await POST(makeRequest({ userId: VALID_USER_ID }) as never)
 
     expect(res.status).toBe(400)
@@ -170,37 +177,43 @@ describe('POST /api/admin/support-notes', () => {
 
   // ── Happy path ─────────────────────────────────────────────────────────────
 
-  it('returns 200 { success: true } on successful save', async () => {
+  it('returns 200 { success: true, entry } on successful save', async () => {
     const res = await POST(makeRequest() as never)
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toEqual({ success: true })
+    expect(body.success).toBe(true)
+    expect(body.entry).toMatchObject({ note: VALID_NOTES })
+    expect(typeof body.entry.ts).toBe('string')
   })
 
-  it('calls Supabase update with correct targetUserId and notes', async () => {
+  it('calls Supabase update with correct targetUserId and notes array', async () => {
     await POST(makeRequest() as never)
 
     expect(mockFrom).toHaveBeenCalledWith('users')
-    expect(mockUpdate).toHaveBeenCalledWith({ support_notes: VALID_NOTES })
+    expect(mockUpdate).toHaveBeenCalledWith({
+      support_notes: [expect.objectContaining({ note: VALID_NOTES })],
+    })
     expect(mockUpdateEq).toHaveBeenCalledWith('id', VALID_USER_ID)
   })
 
-  it('accepts notes at exactly 2000 characters', async () => {
-    const maxNotes = 'a'.repeat(2000)
-    const res = await POST(makeRequest({ userId: VALID_USER_ID, notes: maxNotes }) as never)
+  it('accepts note at exactly 2000 characters', async () => {
+    const maxNote = 'a'.repeat(2000)
+    const res = await POST(makeRequest({ userId: VALID_USER_ID, note: maxNote }) as never)
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toEqual({ success: true })
-    expect(mockUpdate).toHaveBeenCalledWith({ support_notes: maxNotes })
+    expect(body.success).toBe(true)
+    expect(mockUpdate).toHaveBeenCalledWith({
+      support_notes: [expect.objectContaining({ note: maxNote })],
+    })
   })
 
   // ── Notes content not logged ───────────────────────────────────────────────
 
   it('does not log notes content on success', async () => {
     const sensitiveNotes = 'SECRET: user threatened legal action'
-    await POST(makeRequest({ userId: VALID_USER_ID, notes: sensitiveNotes }) as never)
+    await POST(makeRequest({ userId: VALID_USER_ID, note: sensitiveNotes }) as never)
 
     const allLogCalls = [
       ...mockLog.info.mock.calls,
@@ -219,7 +232,7 @@ describe('POST /api/admin/support-notes', () => {
     const sensitiveNotes = 'CONFIDENTIAL: payment dispute pending'
     mockUpdateEq.mockResolvedValue({ error: { message: 'constraint violation' } })
 
-    await POST(makeRequest({ userId: VALID_USER_ID, notes: sensitiveNotes }) as never)
+    await POST(makeRequest({ userId: VALID_USER_ID, note: sensitiveNotes }) as never)
 
     const allLogCalls = [
       ...mockLog.info.mock.calls,

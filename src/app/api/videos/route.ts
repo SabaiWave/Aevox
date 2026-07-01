@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3b. Voice quota pre-check (skip for dry runs) ────────────────────────
-  const voiceQuota = !dryRun ? await checkVoiceQuota(userUuid, tier) : { allowed: true }
+  const voiceQuota = !dryRun ? await checkVoiceQuota(userUuid, tier) : { allowed: true, used: 0, limit: undefined }
   if (!voiceQuota.allowed) {
     return Response.json(
       { error: 'quota_exceeded', code: 'VOICE_QUOTA_EXCEEDED', tier, charsUsed: voiceQuota.used, charsLimit: voiceQuota.limit ?? null },

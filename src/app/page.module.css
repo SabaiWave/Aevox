@@ -1,0 +1,135 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 0 1.5rem;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 760px;
+  width: 100%;
+  padding: 4rem 0 3rem;
+  min-height: 70vh;
+  justify-content: center;
+}
+
+.eyebrow {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  margin: 0 0 1rem 0;
+}
+
+.headline {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  margin: 0 0 1.25rem 0;
+  text-wrap: balance;
+}
+
+.subtext {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 480px;
+  margin: 0 0 2rem 0;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  text-decoration: none;
+  transition: filter 0.15s ease;
+}
+
+.cta:hover {
+  filter: brightness(1.15);
+}
+
+.howItWorks {
+  width: 100%;
+  max-width: 1080px;
+  padding: 2rem 0 4rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--color-text-primary);
+  text-align: center;
+  margin: 0 0 2rem 0;
+  text-wrap: balance;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.stepCard {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-1);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.stepNumber {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  margin: 0 0 0.75rem 0;
+}
+
+.stepTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--color-text-primary);
+  margin: 0 0 0.5rem 0;
+  text-wrap: balance;
+}
+
+.stepDescription {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .stepsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: 60vh;
+    padding: 3rem 0 2.5rem;
+  }
+}

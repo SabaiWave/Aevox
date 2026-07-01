@@ -45,10 +45,10 @@ export async function checkVoiceQuota(
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
     const { data, error } = await supabase
-      .from('usage_logs')
+      .from('videos')
       .select('chars_used')
       .eq('user_id', userUuid)
-      .eq('event_type', 'voice_chars_used')
+      .eq('is_dry_run', false)
       .gte('created_at', monthStart)
 
     if (error) {

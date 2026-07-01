@@ -63,10 +63,14 @@ body {
 
 .sidebar-brand {
   padding: 1.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: var(--font-geist-mono), monospace;
+  letter-spacing: 0.12em;
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border-1);
+  text-decoration: none;
+  display: block;
 }
 
 .nav-item {

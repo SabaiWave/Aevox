@@ -7,6 +7,7 @@ import { PipelineStageTracker } from '@/components/PipelineStageTracker'
 import type { StageInfo } from '@/components/PipelineStageTracker'
 import { AgentResultCard } from '@/components/AgentResultCard'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
+import { DeleteVideoButton } from './DeleteVideoButton'
 
 interface PipelineRunViewProps {
   runId: string
@@ -194,24 +195,26 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
     >
       {/* Page header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        {/* Top row: status + New Video */}
+        {/* Top row: status + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <RunStatusBadge status={badgeStatus(run.status)} />
-          <Link
-            href="/video/new"
-            style={{
-              marginLeft: 'auto',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              color: 'var(--color-primary)',
-              textDecoration: 'none',
-              padding: '4px 12px',
-              border: '1px solid var(--color-primary)',
-              borderRadius: '8px',
-            }}
-          >
-            New Video
-          </Link>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DeleteVideoButton runId={runId} />
+            <Link
+              href="/video/new"
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'var(--color-primary)',
+                textDecoration: 'none',
+                padding: '4px 12px',
+                border: '1px solid var(--color-primary)',
+                borderRadius: '8px',
+              }}
+            >
+              New Video
+            </Link>
+          </div>
         </div>
 
         {/* Topic as primary heading */}

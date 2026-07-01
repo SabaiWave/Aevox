@@ -4,17 +4,9 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { checkVoiceQuota } from '@/lib/quota'
-import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { UsageWidget } from '@/components/UsageWidget'
+import { RunRow } from './RunRow'
 import YouTubeConnectionBadge from '@/components/YouTubeConnectionBadge'
-import type { StageState } from '@/types'
-
-function toStageState(status: string): StageState {
-  if (status === 'complete') return 'complete'
-  if (status === 'failed') return 'failed'
-  if (status === 'running') return 'running'
-  return 'pending'
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -52,6 +44,7 @@ export default async function DashboardPage({
         .from('videos')
         .select('id, topic, status, config_id, created_at, updated_at, is_dry_run')
         .eq('user_id', userUuid)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(10)
     : { data: [], error: null }
@@ -76,15 +69,15 @@ export default async function DashboardPage({
 
   // Always fetch actual voice chars used this month regardless of tier (Pro skips quota check but still has real usage)
   const startOfMonthUTC = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString()
-  const { data: usageLogs } = userUuid
+  const { data: videoCharRows } = userUuid
     ? await supabase
-        .from('usage_logs')
+        .from('videos')
         .select('chars_used')
         .eq('user_id', userUuid)
-        .eq('event_type', 'voice_chars_used')
+        .eq('is_dry_run', false)
         .gte('created_at', startOfMonthUTC)
     : { data: [] }
-  const charsUsedActual = (usageLogs ?? []).reduce((sum, row) => sum + (Number(row.chars_used) || 0), 0)
+  const charsUsedActual = (videoCharRows ?? []).reduce((sum, row) => sum + (Number(row.chars_used) || 0), 0)
 
   return (
     <div
@@ -247,80 +240,11 @@ export default async function DashboardPage({
           /* Runs list */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {runs.map((run) => (
-              <Link
+              <RunRow
                 key={run.id}
-                href={`/video/${run.id}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-surface-1)',
-                    border: '1px solid var(--color-border-1)',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.5rem',
-                  }}
-                >
-                  {/* Left: topic + run ID */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.25rem',
-                      minWidth: 0,
-                      flex: 1,
-                    }}
-                  >
-                    <span
-                      title={run.topic}
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        color: 'var(--color-text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '300px',
-                      }}
-                    >
-                      {run.topic}
-                    </span>
-                    <span
-                      className="font-mono"
-                      title={run.id}
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--color-text-tertiary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {run.id}
-                    </span>
-                  </div>
-
-                  {/* Center: status badge */}
-                  <div style={{ flexShrink: 0 }}>
-                    <RunStatusBadge status={toStageState(run.status)} />
-                  </div>
-
-                  {/* Right: created date */}
-                  <span
-                    className="font-mono"
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--color-text-tertiary)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {formatDate(run.created_at)}
-                  </span>
-                </div>
-              </Link>
+                run={run}
+                formattedDate={formatDate(run.created_at)}
+              />
             ))}
           </div>
         )}

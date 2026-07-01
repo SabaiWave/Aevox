@@ -1,0 +1,25 @@
+.footer {
+  border-top: 1px solid var(--color-border-1);
+  padding: 1rem 1.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.link {
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--color-text-secondary);
+}

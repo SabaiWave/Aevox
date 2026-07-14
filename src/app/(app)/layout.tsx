@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/is-admin'
 import Sidebar from '@/components/layout/Sidebar'
 import AppFooter from '@/components/layout/AppFooter'
+import { ClerkDarkFix } from '@/components/layout/ClerkDarkFix'
 import styles from './layout.module.css'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const showAdmin = await isAdmin()
   return (
     <div className="app-shell">
+      <ClerkDarkFix />
       <Sidebar showAdmin={showAdmin} />
       <div className={styles.contentWrapper}>
         <main className="main-content">{children}</main>

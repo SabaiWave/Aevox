@@ -110,3 +110,88 @@ body {
   animation: klipto-pulse 1.2s ease-in-out infinite;
   flex-shrink: 0;
 }
+
+/* ── Clerk UI overrides ─────────────────────────────────────────────────── */
+/* Nuclear: set text CSS var + strip opacity dimming Clerk applies internally */
+[class*="cl-"] {
+  --cl-color-text: #ffffff !important;
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+}
+
+.cl-card, .cl-card *,
+.cl-modalContent, .cl-modalContent *,
+.cl-modal, .cl-modal *,
+[class*="cl-userProfile"], [class*="cl-userProfile"] *,
+[class*="cl-navbar"], [class*="cl-navbar"] *,
+.cl-userButtonPopoverCard, .cl-userButtonPopoverCard * {
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+}
+
+.cl-card, .cl-card *,
+.cl-modalContent, .cl-modalContent *,
+.cl-modal, .cl-modal *,
+.cl-userButtonPopoverCard, .cl-userButtonPopoverCard *,
+[class*="cl-userProfile"], [class*="cl-userProfile"] *,
+[class*="cl-navbar"], [class*="cl-navbar"] * {
+  opacity: 1 !important;
+}
+
+[class*="cl-navbar"] {
+  color: #ffffff;
+}
+[class*="cl-navbar"] * {
+  color: #ffffff !important;
+}
+
+.cl-profilePage, .cl-userProfile-root {
+  color: #ffffff;
+}
+
+.cl-navbarButton, .cl-navbarButton * {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
+}
+.cl-navbarButton:hover, .cl-navbarButton:hover * {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.cl-closeButton, .cl-modalCloseButton {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
+}
+.cl-closeButton:hover, .cl-modalCloseButton:hover {
+  color: #ffffff !important;
+}
+
+.cl-profileSectionTitle, .cl-profileSectionTitle * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+.cl-profileSectionContent, .cl-profileSectionContent * {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
+}
+
+.cl-activeDevice, .cl-activeDevice * {
+  color: #a1a1aa !important;
+  opacity: 1 !important;
+}
+.cl-activeDevice [data-device-name], .cl-activeDevice strong {
+  color: #ffffff !important;
+}
+
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverCard * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+.cl-userButtonPopoverCard [class*="SecondaryIdentifier"],
+.cl-userButtonPopoverCard [class*="secondaryIdentifier"] {
+  color: #a1a1aa !important;
+}
+.cl-userButtonPopoverCard button:hover,
+.cl-userButtonPopoverCard a:hover,
+.cl-userButtonPopoverCard li:hover {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+}

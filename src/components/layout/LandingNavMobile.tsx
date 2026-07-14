@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { UserButton } from '@clerk/nextjs'
-import { Menu, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { useClerk } from '@clerk/nextjs'
+import { Menu, X, Home, LayoutDashboard, Zap, Settings, LogOut } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import styles from './LandingNav.module.css'
 
 interface Props {
@@ -13,6 +15,15 @@ interface Props {
 export default function LandingNavMobile({ isAuthed }: Props) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
+  const { signOut } = useClerk()
+  const pathname = usePathname()
+
+  const authedNav = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/upgrade', label: 'Upgrade', icon: Zap },
+    { href: '/configs', label: 'Channels', icon: Settings },
+  ]
 
   return (
     <>
@@ -33,10 +44,17 @@ export default function LandingNavMobile({ isAuthed }: Props) {
 
             <div className={styles.drawerLinks}>
               {isAuthed ? (
-                <>
-                  <Link href="/" className={styles.drawerLink} onClick={close}>Home</Link>
-                  <Link href="/dashboard" className={styles.drawerLink} onClick={close}>Dashboard</Link>
-                </>
+                authedNav.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(styles.drawerLink, pathname === href && styles.drawerLinkActive)}
+                    onClick={close}
+                  >
+                    <Icon size={16} />
+                    <span>{label}</span>
+                  </Link>
+                ))
               ) : (
                 <>
                   <Link href="/sign-in" className={styles.drawerLink} onClick={close}>Sign in</Link>
@@ -47,7 +65,18 @@ export default function LandingNavMobile({ isAuthed }: Props) {
 
             {isAuthed && (
               <div className={styles.drawerFooter}>
-                <UserButton />
+                <Link href="/account" className={styles.drawerLink} onClick={close}>
+                  <Settings size={16} />
+                  <span>Account</span>
+                </Link>
+                <button
+                  className={styles.drawerLink}
+                  onClick={() => signOut({ redirectUrl: '/' })}
+                  style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
               </div>
             )}
           </div>

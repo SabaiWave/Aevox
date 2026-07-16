@@ -50,6 +50,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
+  // Audio playback from Supabase Storage (voice samples)
+  "media-src 'self' https://*.supabase.co",
   // Browser-side API connections: Supabase realtime, Clerk, Stripe
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${clerkOrigins} https://api.clerk.dev https://js.stripe.com https://*.stripe.com`,
   // Clerk and Stripe render iframes for their hosted UI

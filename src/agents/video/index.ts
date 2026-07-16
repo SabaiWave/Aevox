@@ -163,14 +163,25 @@ export class VideoAgent {
         const beat = beats[i]
         const prompt = `${beat}\n\n${styleSuffix}`
 
-        const result = await fal.subscribe('fal-ai/flux-pro', {
-          input: {
-            prompt,
-            image_size: 'landscape_16_9',
-            num_images: 1,
-            safety_tolerance: '4',
-          },
-        })
+        let result: Awaited<ReturnType<typeof fal.subscribe>>
+        try {
+          result = await fal.subscribe('fal-ai/flux/dev', {
+            input: {
+              prompt,
+              image_size: 'landscape_16_9',
+              num_images: 1,
+            },
+          })
+        } catch (falErr) {
+          cleanup()
+          const msg = falErr instanceof Error ? falErr.message : String(falErr)
+          return {
+            status: 'failed',
+            data: null,
+            error: `FAL.ai image generation failed (beat ${i}): ${msg}`.slice(0, 200),
+            durationMs: Date.now() - start,
+          }
+        }
 
         const imageUrl = (result.data as Record<string, unknown> & { images?: Array<{ url: string }> })
           .images?.[0]?.url as string
@@ -294,7 +305,7 @@ export class VideoAgent {
       return {
         status: 'failed',
         data: null,
-        error: `VideoAgent failed: ${message}`.slice(0, 120),
+        error: `VideoAgent failed: ${message}`.slice(0, 300),
         durationMs: Date.now() - start,
       }
     }

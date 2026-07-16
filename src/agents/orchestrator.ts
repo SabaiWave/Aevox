@@ -25,12 +25,16 @@ const COST_RATES = {
   claudeInputPerMTok: 3.0,
   claudeOutputPerMTok: 15.0,
   elevenLabsPerKChars: 0.18,
+  // FAL.ai: flux-dev $0.025/image, flux-pro $0.05/image
+  // Update when switching model for production
+  falPerImage: 0.025,
 }
 
 export interface CostSummary {
   research: { searches: number; usd: number }
   script: { tokensIn: number; tokensOut: number; usd: number }
   voice: { chars: number; usd: number }
+  video: { images: number; usd: number }
   totalUsd: number
 }
 
@@ -38,24 +42,28 @@ export function buildCostSummary(
   researchResult: AgentResult<SourcePackage> | null,
   scriptResult: AgentResult<string> | null,
   voiceResult: AgentResult<VoiceOutput> | null,
+  videoResult: AgentResult<VideoOutput> | null,
 ): CostSummary {
   const searches = researchResult?.usage?.searchCount ?? 0
   const tokensIn = scriptResult?.usage?.tokensIn ?? 0
   const tokensOut = scriptResult?.usage?.tokensOut ?? 0
   const chars = voiceResult?.usage?.charsUsed ?? voiceResult?.data?.charsUsed ?? 0
+  const images = videoResult?.data?.imageCount ?? 0
 
   const researchUsd = searches * COST_RATES.tavilyPerSearch
   const scriptUsd =
     (tokensIn / 1_000_000) * COST_RATES.claudeInputPerMTok +
     (tokensOut / 1_000_000) * COST_RATES.claudeOutputPerMTok
   const voiceUsd = (chars / 1000) * COST_RATES.elevenLabsPerKChars
+  const videoUsd = images * COST_RATES.falPerImage
 
-  const totalUsd = researchUsd + scriptUsd + voiceUsd
+  const totalUsd = researchUsd + scriptUsd + voiceUsd + videoUsd
 
   return {
     research: { searches, usd: researchUsd },
     script: { tokensIn, tokensOut, usd: scriptUsd },
     voice: { chars, usd: voiceUsd },
+    video: { images, usd: videoUsd },
     totalUsd,
   }
 }
@@ -63,11 +71,12 @@ export function buildCostSummary(
 function logCostSummary(runId: string, cost: CostSummary): void {
   const fmt = (n: number) => `$${n.toFixed(4)}`
   console.log(`[Run ${runId.slice(0, 8)}] Cost summary:`)
-  console.log(`  Research  — ${cost.research.searches} search(es)          ${fmt(cost.research.usd)}`)
+  console.log(`  Research  — ${cost.research.searches} search(es)                      ${fmt(cost.research.usd)}`)
   console.log(`  Script    — ${cost.script.tokensIn} in / ${cost.script.tokensOut} out tokens  ${fmt(cost.script.usd)}`)
-  console.log(`  Voice     — ${cost.voice.chars} chars               ${fmt(cost.voice.usd)}`)
-  console.log(`  ────────────────────────────────────────────`)
-  console.log(`  Total                                        ${fmt(cost.totalUsd)}`)
+  console.log(`  Voice     — ${cost.voice.chars} chars                           ${fmt(cost.voice.usd)}`)
+  console.log(`  Video     — ${cost.video.images} image(s) @ FAL.ai flux/dev        ${fmt(cost.video.usd)}`)
+  console.log(`  ──────────────────────────────────────────────────────`)
+  console.log(`  Total                                                  ${fmt(cost.totalUsd)}`)
 }
 
 // ─── buildDegradedContext ─────────────────────────────────────────────────────
@@ -328,9 +337,9 @@ export async function runPipeline(
       (publishResult.status === 'failed') ||
       (publishResult.status === 'degraded')
 
-    // research + script are the critical path per spec.
-    // Voice/video/publish failures are captured in degradedContext but do not fail the pipeline.
-    const finalStatus: PipelineRunStatus = 'complete'
+    // complete = published to YouTube; partial = research+script+voice ok but video/publish failed
+    const finalStatus: PipelineRunStatus =
+      publishResult?.status === 'success' ? 'complete' : 'partial'
 
     const hasDegraded = anyFailure
     const degradedContext = hasDegraded
@@ -338,7 +347,7 @@ export async function runPipeline(
       : null
 
     const totalDurationMs = Date.now() - startMs
-    const costSummary = buildCostSummary(researchResult, scriptResult, voiceResult)
+    const costSummary = buildCostSummary(researchResult, scriptResult, voiceResult, videoResult)
     logCostSummary(runId, costSummary)
 
     await writePipelineRun({

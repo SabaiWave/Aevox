@@ -16,6 +16,7 @@
   --color-status-failed: #ef4444;
   --color-status-pending: #6b7280;
   --color-status-degraded: #f97316;
+  --color-status-partial: #f59e0b;
 }
 
 @theme inline {

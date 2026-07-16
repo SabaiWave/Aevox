@@ -80,7 +80,7 @@ export interface ChannelConfig {
 
 // ─── Pipeline Run ─────────────────────────────────────────────────────────────
 
-export type PipelineRunStatus = 'pending' | 'running' | 'complete' | 'failed'
+export type PipelineRunStatus = 'pending' | 'running' | 'complete' | 'partial' | 'failed'
 
 export interface PipelineRun {
   id: string

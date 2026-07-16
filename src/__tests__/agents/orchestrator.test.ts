@@ -268,7 +268,7 @@ describe('runPipeline', () => {
     expect(mockPublishRun).toHaveBeenCalled()
   })
 
-  it('returns complete when publish is degraded (Phase 2 stub)', async () => {
+  it('returns partial when publish is degraded', async () => {
     mockResearchRun.mockResolvedValue(successResearch)
     mockScriptRun.mockResolvedValue(successScript)
     mockVoiceRun.mockResolvedValue(successVoice)
@@ -276,7 +276,7 @@ describe('runPipeline', () => {
 
     const result = await runPipeline(RUN_ID, TOPIC, darkloreConfig, OAUTH)
 
-    expect(result.status).toBe('complete')
+    expect(result.status).toBe('partial')
     expect(result.degradedContext?.gapMessages).toContain(
       'Publish failed — video not uploaded to YouTube',
     )

@@ -292,7 +292,7 @@ describe('VideoAgent', () => {
       await agent.run(SCRIPT, darkloreConfig, AUDIO_URL, RUN_ID)
 
       const firstCall = mockFalSubscribe.mock.calls[0]
-      expect(firstCall[0]).toBe('fal-ai/flux-pro')
+      expect(firstCall[0]).toBe('fal-ai/flux/dev')
       expect(firstCall[1].input.image_size).toBe('landscape_16_9')
       expect(firstCall[1].input.num_images).toBe(1)
     })
@@ -425,15 +425,15 @@ describe('VideoAgent', () => {
       expect(result.error!.length).toBeGreaterThan(0)
     })
 
-    it('caps error message at 120 chars', async () => {
+    it('caps error message at 200 chars', async () => {
       mockFalSubscribe.mockRejectedValue(
-        new Error('x'.repeat(200) + ' FAL.ai very long error message'),
+        new Error('x'.repeat(300) + ' FAL.ai very long error message'),
       )
 
       const agent = new VideoAgent()
       const result = await agent.run(SCRIPT, darkloreConfig, AUDIO_URL, RUN_ID)
 
-      expect(result.error!.length).toBeLessThanOrEqual(120)
+      expect(result.error!.length).toBeLessThanOrEqual(200)
     })
   })
 

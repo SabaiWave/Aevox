@@ -175,6 +175,7 @@ describe('getValidYouTubeToken', () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 401,
+      text: jest.fn().mockResolvedValue('Unauthorized'),
     })
 
     const result = await getValidYouTubeToken(USER_UUID)
@@ -193,6 +194,7 @@ describe('getValidYouTubeToken', () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500,
+      text: jest.fn().mockResolvedValue('Internal Server Error'),
     })
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 

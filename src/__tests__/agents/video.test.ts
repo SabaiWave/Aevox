@@ -302,7 +302,7 @@ describe('VideoAgent', () => {
       await agent.run(SCRIPT, darkloreConfig, AUDIO_URL, RUN_ID)
 
       expect(mockUpload).toHaveBeenCalledWith(
-        `${RUN_ID}/output.mp4`,
+        `videos/${RUN_ID}/output.mp4`,
         expect.any(Buffer),
         expect.objectContaining({ contentType: 'video/mp4' }),
       )

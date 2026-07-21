@@ -86,11 +86,14 @@ function applyKenBurns(
         '-vf', zoompanFilter,
         '-t', '6',
         '-c:v', 'libx264',
+        '-preset', 'ultrafast', // much faster encode; file size trade-off acceptable for pipeline
+        '-crf', '23',
         '-pix_fmt', 'yuv420p',
       ])
       .output(outputClipPath)
-      .on('end', () => resolve())
-      .on('error', (err) => reject(err))
+      .on('start', (cmd) => console.log(`[VideoAgent] FFmpeg clip ${index} start: ${cmd.slice(0, 120)}`))
+      .on('end', () => { console.log(`[VideoAgent] FFmpeg clip ${index} done`); resolve() })
+      .on('error', (err) => { console.error(`[VideoAgent] FFmpeg clip ${index} error:`, err.message); reject(err) })
       .run()
   })
 }
@@ -147,22 +150,27 @@ export class VideoAgent {
       fs.mkdirSync(clipsDir, { recursive: true })
 
       // ── Step 1: Split script into beats ──────────────────────────────────
-      const beats = splitScriptIntoBeats(script)
+      // VIDEO_BEAT_COUNT env var overrides target for cheap test runs (e.g. VIDEO_BEAT_COUNT=2)
+      const beatTarget = process.env.VIDEO_BEAT_COUNT ? parseInt(process.env.VIDEO_BEAT_COUNT, 10) : 12
+      const allBeats = splitScriptIntoBeats(script, beatTarget)
+      const beats = allBeats.slice(0, beatTarget)
       const imageCount = beats.length
+      console.log(`[VideoAgent] ${imageCount} beats (target=${beatTarget}), tmpDir=${tmpDir}`)
 
       // ── Step 2: Resolve style suffix ──────────────────────────────────────
-      // Derive style key from channel niche (lowercase, strip spaces)
       const styleKey = config.niche?.toLowerCase().replace(/\s+/g, '') ?? ''
       const styleSuffix =
         style_modifiers[styleKey] ??
-        style_modifiers['darklore'] // fallback to DarkLore style
+        style_modifiers['darklore']
 
-      // ── Step 3: Generate images via FAL.ai FLUX.2 [pro] ──────────────────
+      // ── Step 3: Generate images via FAL.ai FLUX.2 [dev] ──────────────────
+      console.log(`[VideoAgent] Step 3: generating ${beats.length} images via FAL.ai`)
       const imagePaths: string[] = []
       for (let i = 0; i < beats.length; i++) {
         const beat = beats[i]
         const prompt = `${beat}\n\n${styleSuffix}`
 
+        console.log(`[VideoAgent] FAL image ${i + 1}/${beats.length} — submitting`)
         let result: Awaited<ReturnType<typeof fal.subscribe>>
         try {
           result = await fal.subscribe('fal-ai/flux/dev', {
@@ -172,9 +180,11 @@ export class VideoAgent {
               num_images: 1,
             },
           })
+          console.log(`[VideoAgent] FAL image ${i + 1}/${beats.length} — received`)
         } catch (falErr) {
           cleanup()
           const msg = falErr instanceof Error ? falErr.message : String(falErr)
+          console.error(`[VideoAgent] FAL image ${i + 1} failed:`, msg)
           return {
             status: 'failed',
             data: null,
@@ -187,6 +197,7 @@ export class VideoAgent {
           .images?.[0]?.url as string
 
         if (!imageUrl) {
+          console.error(`[VideoAgent] FAL image ${i + 1} — no URL in response:`, JSON.stringify(result.data).slice(0, 200))
           cleanup()
           return {
             status: 'failed',
@@ -196,9 +207,9 @@ export class VideoAgent {
           }
         }
 
-        // Download image to disk
         const imageResp = await fetch(imageUrl)
         if (!imageResp.ok) {
+          console.error(`[VideoAgent] download image ${i + 1} failed: HTTP ${imageResp.status}`)
           cleanup()
           return {
             status: 'failed',
@@ -211,19 +222,25 @@ export class VideoAgent {
         const imagePath = path.join(imagesDir, `beat_${i}.jpg`)
         fs.writeFileSync(imagePath, imageBuffer)
         imagePaths.push(imagePath)
+        console.log(`[VideoAgent] image ${i + 1} saved (${imageBuffer.length} bytes)`)
       }
 
-      // ── Step 4: Apply Ken Burns effect to each image ──────────────────────
-      const clipPaths: string[] = []
-      for (let i = 0; i < imagePaths.length; i++) {
-        const clipPath = path.join(clipsDir, `clip_${i}.mp4`)
-        await applyKenBurns(imagePaths[i], clipPath, i)
-        clipPaths.push(clipPath)
-      }
+      // ── Step 4: Apply Ken Burns effect — parallel across all clips ─────────
+      console.log(`[VideoAgent] Step 4: Ken Burns FFmpeg on ${imagePaths.length} clips (parallel)`)
+      const clipEntries = await Promise.all(
+        imagePaths.map(async (imgPath, i) => {
+          const clipPath = path.join(clipsDir, `clip_${i}.mp4`)
+          await applyKenBurns(imgPath, clipPath, i)
+          return clipPath
+        }),
+      )
+      const clipPaths = clipEntries
 
       // ── Step 5: Download narration MP3 locally ────────────────────────────
+      console.log(`[VideoAgent] Step 5: downloading narration audio`)
       const audioResp = await fetch(audioUrl)
       if (!audioResp.ok) {
+        console.error(`[VideoAgent] narration download failed: HTTP ${audioResp.status}`)
         cleanup()
         return {
           status: 'failed',
@@ -234,15 +251,17 @@ export class VideoAgent {
       }
       const audioBuffer = Buffer.from(await audioResp.arrayBuffer())
       fs.writeFileSync(narrationPath, audioBuffer)
+      console.log(`[VideoAgent] narration saved (${audioBuffer.length} bytes)`)
 
       // ── Step 6: Write concat list and merge clips + narration ─────────────
+      console.log(`[VideoAgent] Step 6: FFmpeg merge ${clipPaths.length} clips + audio`)
       const concatLines = clipPaths.map((p) => `file '${p}'`).join('\n')
       fs.writeFileSync(concatPath, concatLines)
 
       await new Promise<void>((resolve, reject) => {
         ffmpeg()
-          .inputOptions(['-f', 'concat', '-safe', '0'])
           .input(concatPath)
+          .inputOptions(['-f', 'concat', '-safe', '0'])
           .input(narrationPath)
           .outputOptions([
             '-c:v', 'copy',
@@ -250,23 +269,27 @@ export class VideoAgent {
             '-shortest',
           ])
           .output(outputPath)
-          .on('end', () => resolve())
-          .on('error', (err) => reject(err))
+          .on('start', (cmd) => console.log(`[VideoAgent] FFmpeg merge start: ${cmd.slice(0, 120)}`))
+          .on('end', () => { console.log('[VideoAgent] FFmpeg merge done'); resolve() })
+          .on('error', (err) => { console.error('[VideoAgent] FFmpeg merge error:', err.message); reject(err) })
           .run()
       })
 
       // ── Step 7: Upload MP4 to Supabase Storage ─────────────────────────────
+      console.log(`[VideoAgent] Step 7: uploading to Supabase Storage`)
       const supabase = getSupabaseServerClient()
       const fileBuffer = fs.readFileSync(outputPath)
 
+      const videoStoragePath = `videos/${runId}/output.mp4`
       const { error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(`${runId}/output.mp4`, fileBuffer, {
+        .from('media')
+        .upload(videoStoragePath, fileBuffer, {
           contentType: 'video/mp4',
           upsert: true,
         })
 
       if (uploadError) {
+        console.error('[VideoAgent] Supabase upload failed:', uploadError.message)
         cleanup()
         return {
           status: 'failed',
@@ -275,10 +298,11 @@ export class VideoAgent {
           durationMs: Date.now() - start,
         }
       }
+      console.log('[VideoAgent] Supabase upload done')
 
       const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(`${runId}/output.mp4`)
+        .from('media')
+        .getPublicUrl(videoStoragePath)
 
       // ── Step 8: Estimate duration and clean up temp files ─────────────────
       // 6 seconds per image clip (matches Ken Burns d=150 at 25fps)
@@ -302,6 +326,7 @@ export class VideoAgent {
     } catch (err) {
       cleanup()
       const message = err instanceof Error ? err.message : String(err)
+      console.error('[VideoAgent] Uncaught error:', message)
       return {
         status: 'failed',
         data: null,

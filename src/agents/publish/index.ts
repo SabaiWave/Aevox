@@ -112,6 +112,7 @@ export class PublishAgent {
 
       // Strip control chars first, then validate the actual string used in the header
       const safeToken = oauthToken.replace(/[\x00-\x1F]/g, '')
+      console.log(`[PublishAgent] token length=${safeToken.length}, prefix=${safeToken.slice(0, 8)}...`)
       if (!safeToken || safeToken.trim().length < 10) {
         return {
           status: 'failed',

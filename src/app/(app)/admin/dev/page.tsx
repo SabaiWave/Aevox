@@ -9,10 +9,12 @@ import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { DevTriggerForm } from './DevTriggerForm'
 import { QuotaSimButtons } from './QuotaSimButtons'
+import { ErrorStateSimulator } from './ErrorStateSimulator'
 import type { StageState } from '@/types'
 
-function toStageState(status: string): StageState {
+function toStageState(status: string): StageState | 'partial' {
   if (status === 'complete') return 'complete'
+  if (status === 'partial') return 'partial'
   if (status === 'failed') return 'failed'
   if (status === 'running') return 'running'
   if (status === 'degraded') return 'degraded'
@@ -239,7 +241,22 @@ export default async function AdminDevPage() {
         </Suspense>
       </section>
 
-      {/* Section 2: Dev Data Tools */}
+      {/* Section 2: Error State Simulator */}
+      <section style={sectionStyle}>
+        <h2 style={sectionHeadingStyle}>Error State Simulator</h2>
+        <p
+          style={{
+            fontSize: '0.875rem',
+            color: 'var(--color-text-secondary)',
+            margin: 0,
+          }}
+        >
+          Trigger UI error screens without breaking real data.
+        </p>
+        <ErrorStateSimulator />
+      </section>
+
+      {/* Section 3: Dev Data Tools */}
       <section style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Dev Data Tools</h2>
         <p

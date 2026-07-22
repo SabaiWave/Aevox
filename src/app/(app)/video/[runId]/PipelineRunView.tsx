@@ -8,6 +8,7 @@ import type { StageInfo } from '@/components/PipelineStageTracker'
 import { AgentResultCard } from '@/components/AgentResultCard'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { DeleteVideoButton } from './DeleteVideoButton'
+import { RetryButton } from './RetryButton'
 
 interface PipelineRunViewProps {
   runId: string
@@ -50,6 +51,18 @@ function deriveStages(run: PipelineRun): StageInfo[] {
       durationMs: run.voiceResult?.durationMs,
     },
     {
+      stage: 'video' as PipelineStage,
+      state: run.videoResult
+        ? run.videoResult.status === 'success'
+          ? 'complete'
+          : run.videoResult.status === 'degraded'
+            ? 'degraded'
+            : 'failed'
+        : 'pending',
+      errorMessage: run.videoResult?.error,
+      durationMs: run.videoResult?.durationMs,
+    },
+    {
       stage: 'publish' as PipelineStage,
       state: run.publishResult
         ? run.publishResult.status === 'success'
@@ -72,21 +85,33 @@ function initialStages(run: PipelineRun): StageInfo[] {
     { stage: 'research', state: 'pending' },
     { stage: 'script', state: 'pending' },
     { stage: 'voice', state: 'pending' },
+    { stage: 'video', state: 'pending' },
     { stage: 'publish', state: 'pending' },
   ]
 }
 
-const STAGE_ORDER: PipelineStage[] = ['research', 'script', 'voice', 'publish']
+const STAGE_ORDER: PipelineStage[] = ['research', 'script', 'voice', 'video', 'publish']
 
 function stageIndex(stage: PipelineStage): number {
   return STAGE_ORDER.indexOf(stage)
 }
 
-function badgeStatus(status: PipelineRun['status']): StageState | 'complete' {
+function badgeStatus(status: PipelineRun['status']): StageState | 'complete' | 'partial' {
   if (status === 'complete') return 'complete'
+  if (status === 'partial') return 'partial'
   if (status === 'failed') return 'failed'
   if (status === 'running') return 'running'
   return 'pending'
+}
+
+function isRetryable(run: PipelineRun): boolean {
+  if (run.status !== 'partial' && run.status !== 'failed') return false
+  return (
+    run.researchResult?.status === 'success' ||
+    run.scriptResult?.status === 'success' ||
+    run.voiceResult?.status === 'success' ||
+    run.videoResult?.status === 'success'
+  ) ?? false
 }
 
 export function PipelineRunView({ runId, initialRun, configName }: PipelineRunViewProps) {
@@ -94,7 +119,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
   const [stages, setStages] = useState<StageInfo[]>(() => initialStages(initialRun))
 
   useEffect(() => {
-    if (run.status === 'complete' || run.status === 'failed') return
+    if (run.status === 'complete' || run.status === 'partial' || run.status === 'failed') return
 
     const es = new EventSource(`/api/videos/${runId}/stream`)
 
@@ -131,6 +156,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
             ...(targetStage === 'research' && { researchResult: result as PipelineRun['researchResult'] }),
             ...(targetStage === 'script' && { scriptResult: result as PipelineRun['scriptResult'] }),
             ...(targetStage === 'voice' && { voiceResult: result as PipelineRun['voiceResult'] }),
+            ...(targetStage === 'video' && { videoResult: result as PipelineRun['videoResult'] }),
             ...(targetStage === 'publish' && { publishResult: result as PipelineRun['publishResult'] }),
           }))
         }
@@ -152,7 +178,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         setStages(prev =>
           prev.map(s => (s.state === 'running' ? { ...s, state: 'complete' as StageState } : s)),
         )
-        setRun(prev => ({ ...prev, status: 'complete' }))
+        setRun(prev => ({ ...prev, status: event.status ?? 'complete' }))
         es.close()
       }
 
@@ -180,6 +206,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
   const researchIdx = stageIndex('research')
   const scriptIdx = stageIndex('script')
   const voiceIdx = stageIndex('voice')
+  const videoIdx = stageIndex('video')
   const publishIdx = stageIndex('publish')
 
   return (
@@ -199,6 +226,19 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <RunStatusBadge status={badgeStatus(run.status)} />
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {isRetryable(run) && (
+              <RetryButton
+                runId={runId}
+                onRetryStarted={() => {
+                  setRun(prev => ({ ...prev, status: 'running' }))
+                  setStages(prev => prev.map(s =>
+                    s.state === 'failed' || s.state === 'pending'
+                      ? { ...s, state: 'pending', errorMessage: undefined }
+                      : s
+                  ))
+                }}
+              />
+            )}
             <DeleteVideoButton runId={runId} />
             <Link
               href="/video/new"
@@ -238,8 +278,8 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         )}
       </div>
 
-      {/* Error banner — only when run is failed and has a top-level error */}
-      {run.status === 'failed' && run.errorMessage && (
+      {/* Error banner — only for hard failures (all stages failed), not partial */}
+      {run.status === 'failed' && run.errorMessage && !isRetryable(run) && (
         <div
           style={{
             padding: '0.75rem 1rem',
@@ -316,6 +356,12 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
             result={run.voiceResult}
             state={stages[voiceIdx]?.state ?? 'pending'}
             errorMessage={stages[voiceIdx]?.errorMessage}
+          />
+          <AgentResultCard
+            stage="video"
+            result={run.videoResult}
+            state={stages[videoIdx]?.state ?? 'pending'}
+            errorMessage={stages[videoIdx]?.errorMessage}
           />
           <AgentResultCard
             stage="publish"

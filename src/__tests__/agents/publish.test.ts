@@ -163,7 +163,7 @@ describe('PublishAgent', () => {
 
       expect(result.status).toBe('failed')
       expect(result.data).toBeNull()
-      expect(result.error).toContain('YouTube upload failed')
+      expect(result.error).toContain('YouTube authorization expired')
     })
   })
 

@@ -113,6 +113,8 @@ describe('runPipeline (integration — real agents, DRY_RUN=true)', () => {
       'stage_complete:script',
       'stage_start:voice',
       'stage_complete:voice',
+      'stage_start:video',
+      'stage_complete:video',
       'stage_start:publish',
       'stage_complete:publish',
       'pipeline_done',

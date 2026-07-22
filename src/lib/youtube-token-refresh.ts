@@ -22,7 +22,9 @@ export async function getValidYouTubeToken(userUuid: string): Promise<YouTubeTok
   const needsRefresh = Date.now() + fiveMinMs >= expiresAt
 
   if (!needsRefresh) {
-    return { accessToken: decryptToken(tokenRow.access_token), connected: true }
+    const token = decryptToken(tokenRow.access_token)
+    console.log(`[youtube-token-refresh] Using cached token, prefix=${token.slice(0, 8)}..., expires=${tokenRow.token_expiry}`)
+    return { accessToken: token, connected: true }
   }
 
   // Refresh the token
@@ -39,7 +41,8 @@ export async function getValidYouTubeToken(userUuid: string): Promise<YouTubeTok
   })
 
   if (!tokenRes.ok) {
-    console.error('[youtube-token-refresh] Refresh failed, status:', tokenRes.status)
+    const body = await tokenRes.text()
+    console.error('[youtube-token-refresh] Refresh failed, status:', tokenRes.status, body.slice(0, 200))
     // Return existing token even if refresh failed — may still be valid
     return { accessToken: decryptToken(tokenRow.access_token), connected: true }
   }

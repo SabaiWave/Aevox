@@ -44,6 +44,12 @@ export interface VoiceOutput {
   charsUsed: number
 }
 
+export interface VideoOutput {
+  videoUrl: string
+  durationSeconds: number
+  imageCount: number
+}
+
 export interface PublishOutput {
   videoId: string
   videoUrl: string
@@ -74,7 +80,7 @@ export interface ChannelConfig {
 
 // ─── Pipeline Run ─────────────────────────────────────────────────────────────
 
-export type PipelineRunStatus = 'pending' | 'running' | 'complete' | 'failed'
+export type PipelineRunStatus = 'pending' | 'running' | 'complete' | 'partial' | 'failed'
 
 export interface PipelineRun {
   id: string
@@ -85,6 +91,7 @@ export interface PipelineRun {
   researchResult: AgentResult<SourcePackage> | null
   scriptResult: AgentResult<string> | null
   voiceResult: AgentResult<VoiceOutput> | null
+  videoResult: AgentResult<VideoOutput> | null
   publishResult: AgentResult<PublishOutput> | null
   errorMessage: string | null
   createdAt: string
@@ -100,6 +107,7 @@ export interface DegradedContext {
     research: SourcePackage
     script: string
     voice: VoiceOutput
+    video: VideoOutput
     publish: PublishOutput
   }>
 }
@@ -110,6 +118,7 @@ export interface PipelineResult {
   research: AgentResult<SourcePackage> | null
   script: AgentResult<string> | null
   voice: AgentResult<VoiceOutput> | null
+  video: AgentResult<VideoOutput> | null
   publish: AgentResult<PublishOutput> | null
   degradedContext: DegradedContext | null
   totalDurationMs: number
@@ -130,13 +139,14 @@ export interface User {
 
 // ─── SSE Events ───────────────────────────────────────────────────────────────
 
-export type PipelineStage = 'research' | 'script' | 'voice' | 'publish'
+export type PipelineStage = 'research' | 'script' | 'voice' | 'video' | 'publish'
 export type StageState = 'pending' | 'running' | 'complete' | 'failed' | 'degraded'
 
 export interface SSEEvent {
   type: 'stage_start' | 'stage_complete' | 'stage_failed' | 'pipeline_done' | 'pipeline_error'
   stage?: PipelineStage
   state?: StageState
+  status?: PipelineRunStatus
   data?: unknown
   message?: string
   timestamp: string

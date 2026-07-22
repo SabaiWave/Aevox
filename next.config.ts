@@ -21,6 +21,8 @@ const required = [
   'STRIPE_WEBHOOK_SECRET',
   'STRIPE_STARTER_PRICE_ID',
   'STRIPE_PRO_PRICE_ID',
+  // Phase 7 — Video generation
+  'FAL_KEY',
 ]
 
 if (process.env.VERCEL) {
@@ -48,6 +50,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
+  // Audio playback from Supabase Storage (voice samples)
+  "media-src 'self' https://*.supabase.co",
   // Browser-side API connections: Supabase realtime, Clerk, Stripe
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${clerkOrigins} https://api.clerk.dev https://js.stripe.com https://*.stripe.com`,
   // Clerk and Stripe render iframes for their hosted UI
@@ -57,6 +61,8 @@ const csp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
+  // FFmpeg packages use dynamic require() for platform-specific binaries — must not be bundled
+  serverExternalPackages: ['@ffmpeg-installer/ffmpeg', 'fluent-ffmpeg'],
   async headers() {
     return [
       {

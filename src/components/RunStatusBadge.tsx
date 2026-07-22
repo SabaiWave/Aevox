@@ -1,6 +1,6 @@
 import type { StageState } from '@/types'
 
-type BadgeStatus = StageState | 'complete'
+type BadgeStatus = StageState | 'complete' | 'partial'
 
 interface RunStatusBadgeProps {
   status: BadgeStatus
@@ -10,6 +10,7 @@ const LABEL_MAP: Record<BadgeStatus, string> = {
   pending: 'Pending',
   running: 'Running',
   complete: 'Complete',
+  partial: 'Partial',
   failed: 'Failed',
   degraded: 'Degraded',
 }
@@ -18,6 +19,7 @@ const COLOR_VAR_MAP: Record<BadgeStatus, string> = {
   pending: 'var(--color-status-pending)',
   running: 'var(--color-status-running)',
   complete: 'var(--color-status-complete)',
+  partial: 'var(--color-status-partial)',
   failed: 'var(--color-status-failed)',
   degraded: 'var(--color-status-degraded)',
 }

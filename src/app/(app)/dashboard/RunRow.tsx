@@ -9,8 +9,9 @@ import type { StageState } from '@/types'
 import { deleteVideo } from './actions'
 import styles from './RunRow.module.css'
 
-function toStageState(status: string): StageState {
+function toStageState(status: string): StageState | 'partial' {
   if (status === 'complete') return 'complete'
+  if (status === 'partial') return 'partial'
   if (status === 'failed') return 'failed'
   if (status === 'running') return 'running'
   return 'pending'

@@ -62,7 +62,7 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       let sentCount = 0
-      const maxWaitMs = 120_000 // 2 min timeout
+      const maxWaitMs = 600_000 // 10 min timeout — video gen (FAL + FFmpeg) can take 5-10 min
       const startMs = Date.now()
 
       const send = (event: object) => {

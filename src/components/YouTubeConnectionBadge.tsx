@@ -21,6 +21,8 @@ const LABEL: Record<YouTubeStatus, string> = {
 
 export default function YouTubeConnectionBadge() {
   const [status, setStatus] = useState<YouTubeStatus>('loading')
+  const [disconnecting, setDisconnecting] = useState(false)
+
   useEffect(() => {
     fetch('/api/auth/youtube/status')
       .then((r) => r.json())
@@ -28,8 +30,19 @@ export default function YouTubeConnectionBadge() {
       .catch(() => setStatus('disconnected'))
   }, [])
 
-  const showButton = status === 'disconnected' || status === 'expired'
-  const buttonLabel = status === 'expired' ? 'Reconnect' : 'Connect YouTube'
+  async function handleDisconnect() {
+    setDisconnecting(true)
+    try {
+      await fetch('/api/auth/youtube', { method: 'DELETE' })
+      setStatus('disconnected')
+    } finally {
+      setDisconnecting(false)
+    }
+  }
+
+  const showConnectButton = status === 'disconnected' || status === 'expired'
+  const showDisconnectButton = status === 'connected'
+  const connectLabel = status === 'expired' ? 'Reconnect' : 'Connect YouTube'
 
   return (
     <div
@@ -66,7 +79,7 @@ export default function YouTubeConnectionBadge() {
       </span>
 
       {/* Connect / Reconnect button */}
-      {showButton && (
+      {showConnectButton && (
         <Tooltip
           content={
             status === 'expired'
@@ -88,7 +101,31 @@ export default function YouTubeConnectionBadge() {
               lineHeight: '1.5',
             }}
           >
-            {buttonLabel}
+            {connectLabel}
+          </button>
+        </Tooltip>
+      )}
+
+      {/* Disconnect button */}
+      {showDisconnectButton && (
+        <Tooltip content="Remove YouTube access from this account">
+          <button
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            style={{
+              cursor: disconnecting ? 'default' : 'pointer',
+              background: 'transparent',
+              border: '1px solid var(--color-border-2)',
+              borderRadius: '8px',
+              color: 'var(--color-text-tertiary)',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              padding: '2px 10px',
+              lineHeight: '1.5',
+              opacity: disconnecting ? 0.5 : 1,
+            }}
+          >
+            {disconnecting ? 'Disconnecting…' : 'Disconnect'}
           </button>
         </Tooltip>
       )}

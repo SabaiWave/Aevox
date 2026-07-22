@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { Play, Square } from 'lucide-react'
 import { VOICES, getVoiceSampleUrl } from '@/lib/voices'
 
 interface VoicePickerProps {
@@ -116,12 +117,10 @@ export default function VoicePicker({ selectedVoiceId, onChange, error }: VoiceP
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontFamily: 'inherit',
               }}
               aria-label={playing ? `Stop ${voice.name}` : `Preview ${voice.name}`}
             >
-              {playing ? '■' : '▶'}
+              {playing ? <Square size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}
             </button>
           </div>
         )

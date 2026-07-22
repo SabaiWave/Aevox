@@ -38,9 +38,11 @@ function logStartup() {
     // App
     NEXT_PUBLIC_APP_URL:                  !!process.env.NEXT_PUBLIC_APP_URL,
     ADMIN_USER_IDS:                       !!process.env.ADMIN_USER_IDS,
+    // Phase 7 — Video generation
+    FAL_KEY:                              !!process.env.FAL_KEY,
   }
 
-  const required = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'ELEVENLABS_API_KEY']
+  const required = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'ELEVENLABS_API_KEY', 'FAL_KEY']
   const missing = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k)
 
   if (isDev) {
@@ -74,6 +76,8 @@ function logStartup() {
     console.log('  ·')
     console.log(fmt('NEXT_PUBLIC_APP_URL',               'NEXT_PUBLIC_APP_URL'))
     console.log(fmt('ADMIN_USER_IDS',                    'ADMIN_USER_IDS'))
+    console.log('  ·')
+    console.log(fmt('FAL_KEY',                           'FAL_KEY'))
     console.log(`  ${'DRY_RUN'.padEnd(42)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
     console.log('─────────────────────────────────────────────────────\n')
   } else {

@@ -11,7 +11,8 @@ Built for solo faceless YouTube creators. One topic input → research + script 
 1. **Research** — Tavily scrapes and structures a source package for your topic
 2. **Script** — Claude writes a channel-tuned script from the research
 3. **Voice** — ElevenLabs synthesizes an MP3 narration
-4. **Publish** — YouTube Data API uploads the video with metadata
+4. **Video** — FAL.ai generates Ken Burns motion clips; FFmpeg composites them into an MP4
+5. **Publish** — YouTube Data API uploads the video with metadata
 
 Every step is driven by a **channel config** — tone, source types, script structure, forbidden topics, voice ID, YouTube defaults. Swap the config, get a different channel's content. No code changes.
 
@@ -24,6 +25,7 @@ Every step is driven by a **channel config** — tone, source types, script stru
 - **Database:** Supabase (Postgres + Storage)
 - **Billing:** Stripe
 - **AI:** Anthropic Claude (`claude-sonnet-4-6`) + ElevenLabs + Tavily
+- **Video:** FAL.ai (FLUX.2 image generation) + FFmpeg (Ken Burns composition → MP4)
 - **Publish:** YouTube Data API v3 (per-user OAuth 2.0)
 - **Infra:** Vercel
 - **Observability:** Sentry + BetterStack

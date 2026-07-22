@@ -35,6 +35,9 @@
     "svix": "^1.95.2",
     "tailwind-merge": "^3.6.0"
   },
+  "overrides": {
+    "sharp": ">=0.35.3"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

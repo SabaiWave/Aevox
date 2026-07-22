@@ -146,6 +146,7 @@ export interface SSEEvent {
   type: 'stage_start' | 'stage_complete' | 'stage_failed' | 'pipeline_done' | 'pipeline_error'
   stage?: PipelineStage
   state?: StageState
+  status?: PipelineRunStatus
   data?: unknown
   message?: string
   timestamp: string

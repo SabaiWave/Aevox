@@ -20,12 +20,18 @@ async function uploadToYouTube(
   const audioBlob = await audioRes.arrayBuffer()
 
   // 2. Build video metadata
+  // Handle both {topic} and {{topic}} template styles
+  const sanitizedTopic = sanitizeTopic(topic)
+  const sanitizedChannel = config.name.replace(/[\x00-\x1F]/g, '')
   const title = config.ytTitleTemplate
-    .replace('{topic}', sanitizeTopic(topic))
-    .replace('{channel}', config.name.replace(/[\x00-\x1F]/g, ''))
+    .replace(/\{\{topic\}\}|\{topic\}/g, sanitizedTopic)
+    .replace(/\{\{channel\}\}|\{channel\}/g, sanitizedChannel)
     .slice(0, 100)
 
-  const description = config.ytDescriptionTemplate.slice(0, 5000)
+  const description = config.ytDescriptionTemplate
+    .replace(/\{\{topic\}\}|\{topic\}/g, sanitizedTopic)
+    .replace(/\{\{channel\}\}|\{channel\}/g, sanitizedChannel)
+    .slice(0, 5000)
 
   const metadata = {
     snippet: {
@@ -77,7 +83,10 @@ async function uploadToYouTube(
 
   if (!uploadRes.ok) {
     const errBody = await uploadRes.text()
-    throw new Error(`YouTube upload failed: ${uploadRes.status} — ${errBody.slice(0, 200)}`)
+    console.error('[PublishAgent] YouTube upload error', { status: uploadRes.status, body: errBody.slice(0, 500) })
+    if (uploadRes.status === 401) throw new Error('YouTube authorization expired. Reconnect your YouTube account and try again.')
+    if (uploadRes.status === 403) throw new Error('YouTube permission denied. Ensure your account has upload access.')
+    throw new Error('YouTube upload failed. Check your YouTube connection and try again.')
   }
 
   const result = (await uploadRes.json()) as { id: string; snippet?: { title?: string } }

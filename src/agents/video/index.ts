@@ -150,8 +150,12 @@ export class VideoAgent {
       fs.mkdirSync(clipsDir, { recursive: true })
 
       // ── Step 1: Split script into beats ──────────────────────────────────
-      // VIDEO_BEAT_COUNT env var overrides target for cheap test runs (e.g. VIDEO_BEAT_COUNT=2)
-      const beatTarget = process.env.VIDEO_BEAT_COUNT ? parseInt(process.env.VIDEO_BEAT_COUNT, 10) : 12
+      // VIDEO_BEAT_COUNT env var caps beats for cheap test runs (e.g. VIDEO_BEAT_COUNT=2 = 12s, ~$0.05)
+      // Production: derive from target duration so clips match narration length (6s per beat)
+      const derivedBeatCount = Math.max(1, Math.round((config.targetDurationMin * 60) / 6))
+      const beatTarget = process.env.VIDEO_BEAT_COUNT
+        ? Math.max(1, parseInt(process.env.VIDEO_BEAT_COUNT, 10) || derivedBeatCount)
+        : derivedBeatCount
       const allBeats = splitScriptIntoBeats(script, beatTarget)
       const beats = allBeats.slice(0, beatTarget)
       const imageCount = beats.length

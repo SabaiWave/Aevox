@@ -27,6 +27,21 @@ const STAGE_LABEL_MAP: Record<PipelineStage, string> = {
   publish: 'Publish',
 }
 
+const STAGE_FRIENDLY_ERROR: Record<PipelineStage, string> = {
+  research: 'Research failed. Try a different topic or check your connection.',
+  script: 'Script generation failed. Try again in a moment.',
+  voice: 'Voice synthesis failed. Check your ElevenLabs quota.',
+  video: 'Video generation failed. Check your FAL.ai connection.',
+  publish: 'Publishing failed. Reconnect your YouTube account and try again.',
+}
+
+function friendlyError(stage: PipelineStage, rawError: string | undefined): string {
+  if (rawError && rawError.length < 120 && !rawError.includes('{') && !rawError.includes('HTTP')) {
+    return rawError
+  }
+  return STAGE_FRIENDLY_ERROR[stage]
+}
+
 function ResearchBody({ data }: { data: SourcePackage }) {
   if (!Array.isArray(data.sources)) {
     return <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>No source data available</p>
@@ -323,7 +338,7 @@ export function AgentResultCard({ stage, result, state, errorMessage }: AgentRes
             <ResultBody stage={stage} result={result} />
           ) : (
             <p style={{ fontSize: '0.875rem', color: 'var(--color-status-failed)', margin: 0 }}>
-              {resolvedError ?? 'Stage failed'}
+              {friendlyError(stage, resolvedError)}
             </p>
           )}
         </div>

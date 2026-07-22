@@ -8,6 +8,7 @@ import type { StageInfo } from '@/components/PipelineStageTracker'
 import { AgentResultCard } from '@/components/AgentResultCard'
 import { RunStatusBadge } from '@/components/RunStatusBadge'
 import { DeleteVideoButton } from './DeleteVideoButton'
+import { RetryButton } from './RetryButton'
 
 interface PipelineRunViewProps {
   runId: string
@@ -95,11 +96,22 @@ function stageIndex(stage: PipelineStage): number {
   return STAGE_ORDER.indexOf(stage)
 }
 
-function badgeStatus(status: PipelineRun['status']): StageState | 'complete' {
+function badgeStatus(status: PipelineRun['status']): StageState | 'complete' | 'partial' {
   if (status === 'complete') return 'complete'
+  if (status === 'partial') return 'partial'
   if (status === 'failed') return 'failed'
   if (status === 'running') return 'running'
   return 'pending'
+}
+
+function isRetryable(run: PipelineRun): boolean {
+  if (run.status !== 'partial' && run.status !== 'failed') return false
+  return (
+    run.researchResult?.status === 'success' ||
+    run.scriptResult?.status === 'success' ||
+    run.voiceResult?.status === 'success' ||
+    run.videoResult?.status === 'success'
+  ) ?? false
 }
 
 export function PipelineRunView({ runId, initialRun, configName }: PipelineRunViewProps) {
@@ -107,7 +119,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
   const [stages, setStages] = useState<StageInfo[]>(() => initialStages(initialRun))
 
   useEffect(() => {
-    if (run.status === 'complete' || run.status === 'failed') return
+    if (run.status === 'complete' || run.status === 'partial' || run.status === 'failed') return
 
     const es = new EventSource(`/api/videos/${runId}/stream`)
 
@@ -166,7 +178,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         setStages(prev =>
           prev.map(s => (s.state === 'running' ? { ...s, state: 'complete' as StageState } : s)),
         )
-        setRun(prev => ({ ...prev, status: 'complete' }))
+        setRun(prev => ({ ...prev, status: event.status ?? 'complete' }))
         es.close()
       }
 
@@ -214,6 +226,19 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <RunStatusBadge status={badgeStatus(run.status)} />
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {isRetryable(run) && (
+              <RetryButton
+                runId={runId}
+                onRetryStarted={() => {
+                  setRun(prev => ({ ...prev, status: 'running' }))
+                  setStages(prev => prev.map(s =>
+                    s.state === 'failed' || s.state === 'pending'
+                      ? { ...s, state: 'pending', errorMessage: undefined }
+                      : s
+                  ))
+                }}
+              />
+            )}
             <DeleteVideoButton runId={runId} />
             <Link
               href="/video/new"
@@ -253,8 +278,8 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         )}
       </div>
 
-      {/* Error banner — only when run is failed and has a top-level error */}
-      {run.status === 'failed' && run.errorMessage && (
+      {/* Error banner — only for hard failures (all stages failed), not partial */}
+      {run.status === 'failed' && run.errorMessage && !isRetryable(run) && (
         <div
           style={{
             padding: '0.75rem 1rem',

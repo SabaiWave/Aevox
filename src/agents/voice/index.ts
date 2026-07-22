@@ -9,7 +9,7 @@ export class VoiceAgent {
     opts?: { dryRun?: boolean },
   ): Promise<AgentResult<VoiceOutput>> {
     const start = Date.now()
-    const storagePath = `video/${runId}/audio.mp3`
+    const storagePath = `videos/${runId}/audio.mp3`
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     try {

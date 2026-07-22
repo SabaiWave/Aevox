@@ -8,24 +8,30 @@ function sanitizeTopic(topic: string): string {
 }
 
 async function uploadToYouTube(
-  audioUrl: string,
+  mediaUrl: string,
   topic: string,
   config: ChannelConfig,
   accessToken: string,
   safeTags: string[]
 ): Promise<PublishOutput> {
-  // 1. Fetch the audio file from Supabase storage URL
-  const audioRes = await fetch(audioUrl)
+  // 1. Fetch the media file from Supabase storage URL
+  const audioRes = await fetch(mediaUrl)
   if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`)
   const audioBlob = await audioRes.arrayBuffer()
 
   // 2. Build video metadata
+  // Handle both {topic} and {{topic}} template styles
+  const sanitizedTopic = sanitizeTopic(topic)
+  const sanitizedChannel = config.name.replace(/[\x00-\x1F]/g, '')
   const title = config.ytTitleTemplate
-    .replace('{topic}', sanitizeTopic(topic))
-    .replace('{channel}', config.name.replace(/[\x00-\x1F]/g, ''))
+    .replace(/\{\{topic\}\}|\{topic\}/g, sanitizedTopic)
+    .replace(/\{\{channel\}\}|\{channel\}/g, sanitizedChannel)
     .slice(0, 100)
 
-  const description = config.ytDescriptionTemplate.slice(0, 5000)
+  const description = config.ytDescriptionTemplate
+    .replace(/\{\{topic\}\}|\{topic\}/g, sanitizedTopic)
+    .replace(/\{\{channel\}\}|\{channel\}/g, sanitizedChannel)
+    .slice(0, 5000)
 
   const metadata = {
     snippet: {
@@ -42,7 +48,7 @@ async function uploadToYouTube(
   // 3. Build multipart body
   const boundary = `boundary_${Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('')}`
   const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
-  const audioPart = `--${boundary}\r\nContent-Type: audio/mpeg\r\n\r\n`
+  const audioPart = `--${boundary}\r\nContent-Type: video/mp4\r\n\r\n`
   const closing = `\r\n--${boundary}--`
 
   const encoder = new TextEncoder()
@@ -77,7 +83,10 @@ async function uploadToYouTube(
 
   if (!uploadRes.ok) {
     const errBody = await uploadRes.text()
-    throw new Error(`YouTube upload failed: ${uploadRes.status} — ${errBody.slice(0, 200)}`)
+    console.error('[PublishAgent] YouTube upload error', { status: uploadRes.status, body: errBody.slice(0, 500) })
+    if (uploadRes.status === 401) throw new Error('YouTube authorization expired. Reconnect your YouTube account and try again.')
+    if (uploadRes.status === 403) throw new Error('YouTube permission denied. Ensure your account has upload access.')
+    throw new Error('YouTube upload failed. Check your YouTube connection and try again.')
   }
 
   const result = (await uploadRes.json()) as { id: string; snippet?: { title?: string } }
@@ -92,7 +101,7 @@ async function uploadToYouTube(
 
 export class PublishAgent {
   async run(
-    audioUrl: string,
+    mediaUrl: string,
     topic: string,
     config: ChannelConfig,
     oauthToken: string,
@@ -112,6 +121,7 @@ export class PublishAgent {
 
       // Strip control chars first, then validate the actual string used in the header
       const safeToken = oauthToken.replace(/[\x00-\x1F]/g, '')
+      console.log(`[PublishAgent] token length=${safeToken.length}, prefix=${safeToken.slice(0, 8)}...`)
       if (!safeToken || safeToken.trim().length < 10) {
         return {
           status: 'failed',
@@ -126,7 +136,7 @@ export class PublishAgent {
         .map(t => t.replace(/[\x00-\x1F<>]/g, '').slice(0, 30))
         .slice(0, 15)
 
-      const data = await uploadToYouTube(audioUrl, topic, config, safeToken, safeTags)
+      const data = await uploadToYouTube(mediaUrl, topic, config, safeToken, safeTags)
 
       return {
         status: 'success',

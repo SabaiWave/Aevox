@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
 import { LayoutDashboard, Settings, Zap, ShieldCheck, Terminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SidebarAccount } from './SidebarAccount'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -53,8 +53,8 @@ export default function Sidebar({ showAdmin = false }: SidebarProps) {
           </>
         )}
       </nav>
-      <div style={{ marginTop: 'auto', padding: '1rem' }}>
-        <UserButton />
+      <div style={{ marginTop: 'auto' }}>
+        <SidebarAccount />
       </div>
     </aside>
   )

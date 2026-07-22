@@ -453,6 +453,9 @@ export default function ChannelConfigForm({ config, onSave, isSaving, isAdmin }:
             min={1}
             max={60}
           />
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', margin: '0.25rem 0 0' }}>
+            Controls script length, narration length, and video length — all three scale from this value. A 3-minute target produces ~3 minutes of narration and video. Actual duration may vary slightly based on speaking pace.
+          </p>
         </div>
 
         <div style={fieldStyle}>

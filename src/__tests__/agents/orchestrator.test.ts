@@ -106,7 +106,7 @@ const OAUTH = 'test-oauth-token'
 
 describe('buildDegradedContext', () => {
   it('produces no gap messages when all stages succeed', () => {
-    const ctx = buildDegradedContext(successResearch, successScript, successVoice, successPublish)
+    const ctx = buildDegradedContext(successResearch, successScript, successVoice, null, successPublish)
     expect(ctx.failedStages).toHaveLength(0)
     expect(ctx.gapMessages).toHaveLength(0)
     expect(ctx.availableData.research).toBeDefined()
@@ -116,14 +116,14 @@ describe('buildDegradedContext', () => {
   })
 
   it('produces research gap message when research failed', () => {
-    const ctx = buildDegradedContext(failedResearch, null, null, null)
+    const ctx = buildDegradedContext(failedResearch, null, null, null, null)
     expect(ctx.failedStages).toContain('research')
     expect(ctx.gapMessages).toContain('Research failed — script may lack source context')
     expect(ctx.availableData.research).toBeUndefined()
   })
 
   it('produces script gap message when script failed', () => {
-    const ctx = buildDegradedContext(successResearch, failedScript, null, null)
+    const ctx = buildDegradedContext(successResearch, failedScript, null, null, null)
     expect(ctx.failedStages).toContain('script')
     expect(ctx.gapMessages).toContain('Script generation failed — no voiceover available')
     expect(ctx.availableData.research).toBeDefined()
@@ -131,26 +131,26 @@ describe('buildDegradedContext', () => {
   })
 
   it('produces voice gap message when voice failed', () => {
-    const ctx = buildDegradedContext(successResearch, successScript, failedVoice, null)
+    const ctx = buildDegradedContext(successResearch, successScript, failedVoice, null, null)
     expect(ctx.failedStages).toContain('voice')
     expect(ctx.gapMessages).toContain('Voice synthesis failed — no audio file available')
   })
 
   it('produces publish gap message when publish is degraded', () => {
-    const ctx = buildDegradedContext(successResearch, successScript, successVoice, degradedPublish)
+    const ctx = buildDegradedContext(successResearch, successScript, successVoice, null, degradedPublish)
     expect(ctx.failedStages).toContain('publish')
     expect(ctx.gapMessages).toContain('Publish failed — video not uploaded to YouTube')
   })
 
   it('produces all 4 gap messages when all stages fail', () => {
-    const ctx = buildDegradedContext(failedResearch, failedScript, failedVoice, degradedPublish)
+    const ctx = buildDegradedContext(failedResearch, failedScript, failedVoice, null, degradedPublish)
     expect(ctx.failedStages).toHaveLength(4)
     expect(ctx.gapMessages).toHaveLength(4)
     expect(Object.keys(ctx.availableData)).toHaveLength(0)
   })
 
   it('includes only successful stage data in availableData', () => {
-    const ctx = buildDegradedContext(successResearch, failedScript, null, null)
+    const ctx = buildDegradedContext(successResearch, failedScript, null, null, null)
     expect(ctx.availableData.research).toBe(dryRunSourcePackage)
     expect(ctx.availableData.script).toBeUndefined()
     expect(ctx.availableData.voice).toBeUndefined()
@@ -250,7 +250,7 @@ describe('runPipeline', () => {
     expect(mockPublishRun).not.toHaveBeenCalled()
   })
 
-  it('continues past voice failure, publish skipped, returns complete with degradedContext', async () => {
+  it('continues past voice failure, returns complete with degradedContext', async () => {
     mockResearchRun.mockResolvedValue(successResearch)
     mockScriptRun.mockResolvedValue(successScript)
     mockVoiceRun.mockResolvedValue(failedVoice)
@@ -263,11 +263,12 @@ describe('runPipeline', () => {
     expect(result.degradedContext?.gapMessages).toContain(
       'Voice synthesis failed — no audio file available',
     )
-    // Publish should not be called when audio URL is empty
-    expect(mockPublishRun).not.toHaveBeenCalled()
+    // VideoAgent runs in DRY_RUN with empty audioUrl and returns stub videoUrl
+    // Publish is then called with the stub video URL
+    expect(mockPublishRun).toHaveBeenCalled()
   })
 
-  it('returns complete when publish is degraded (Phase 2 stub)', async () => {
+  it('returns partial when publish is degraded', async () => {
     mockResearchRun.mockResolvedValue(successResearch)
     mockScriptRun.mockResolvedValue(successScript)
     mockVoiceRun.mockResolvedValue(successVoice)
@@ -275,7 +276,7 @@ describe('runPipeline', () => {
 
     const result = await runPipeline(RUN_ID, TOPIC, darkloreConfig, OAUTH)
 
-    expect(result.status).toBe('complete')
+    expect(result.status).toBe('partial')
     expect(result.degradedContext?.gapMessages).toContain(
       'Publish failed — video not uploaded to YouTube',
     )

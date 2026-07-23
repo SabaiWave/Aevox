@@ -1,4 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="50" fill="#000000"/>
-  <polygon points="50,20 80,75 20,75" fill="#7c3aed"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#0f0f0f"/>
+  <text
+    x="50%"
+    y="56%"
+    dominant-baseline="middle"
+    text-anchor="middle"
+    font-family="ui-monospace, 'SF Mono', 'Geist Mono', monospace"
+    font-weight="700"
+    font-size="22"
+    fill="white"
+    letter-spacing="-0.5"
+  >K</text>
 </svg>

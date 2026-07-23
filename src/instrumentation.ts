@@ -35,6 +35,8 @@ function logStartup() {
     // Phase 6 — Email + Observability
     BREVO_API_KEY:                     !!process.env.BREVO_API_KEY,
     SUPPORT_EMAIL:                     !!process.env.SUPPORT_EMAIL,
+    // Phase 7 — Video generation
+    FAL_KEY:                           !!process.env.FAL_KEY,
   }
 
   const required = [
@@ -50,6 +52,7 @@ function logStartup() {
     'STRIPE_WEBHOOK_SECRET',
     'STRIPE_STARTER_PRICE_ID',
     'STRIPE_PRO_PRICE_ID',
+    'FAL_KEY',
   ]
 
   const missing = Object.entries(checks)
@@ -87,6 +90,8 @@ function logStartup() {
     console.log('  ·')
     console.log(fmt('BREVO_API_KEY',                  'BREVO_API_KEY'))
     console.log(fmt('SUPPORT_EMAIL',                  'SUPPORT_EMAIL'))
+    console.log('  ·')
+    console.log(fmt('FAL_KEY',                        'FAL_KEY',                        true))
     console.log(`  ${'DRY_RUN'.padEnd(36)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
     console.log(`  ${'ADMIN_USER_IDS'.padEnd(36)}${process.env.ADMIN_USER_IDS ? 'set' : 'not set — admin features disabled'}`)
     console.log('─────────────────────────────────────────────────\n')

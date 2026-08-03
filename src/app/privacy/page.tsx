@@ -94,7 +94,8 @@ export default function PrivacyPage() {
               <br />
               • <strong>Voice synthesis provider</strong> — script text is sent to generate MP3 narration
               <br />
-              • <strong>Google / YouTube</strong> — OAuth tokens used to publish videos to your channel
+              • <strong>Google / YouTube</strong> — Klipto uses YouTube API Services to publish videos to your channel using your OAuth credentials. Your use of YouTube features is also subject to{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={styles.link}>Google&apos;s Privacy Policy</a>.
               <br />
               • <strong>Authentication provider</strong> — manages sign-up, login, and session security (email, name, device info, IP address)
               <br />

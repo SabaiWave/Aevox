@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   // ── 0a. Rate limit (by userId, post-auth) ─────────────────────────────────
-  const { limited, retryAfterSeconds } = checkRateLimit(`pipeline:${userId}`, { windowMs: 60_000, max: 20 })
+  const { limited, retryAfterSeconds } = await checkRateLimit(`pipeline:${userId}`, { windowMs: 60_000, max: 20 })
   if (limited) {
     return Response.json({ error: 'Too many requests' }, {
       status: 429,

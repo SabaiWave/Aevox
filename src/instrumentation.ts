@@ -1,7 +1,10 @@
 export async function register() {
-  // Phase 6: wire Sentry register() here
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('../sentry.server.config')
     logStartup()
+  }
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('../sentry.edge.config')
   }
 }
 
@@ -37,6 +40,14 @@ function logStartup() {
     SUPPORT_EMAIL:                     !!process.env.SUPPORT_EMAIL,
     // Phase 7 — Video generation
     FAL_KEY:                           !!process.env.FAL_KEY,
+    // Phase 9 — Observability
+    SENTRY_DSN:                        !!process.env.SENTRY_DSN,
+    NEXT_PUBLIC_SENTRY_DSN:            !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+    BETTERSTACK_SOURCE_TOKEN:          !!process.env.BETTERSTACK_SOURCE_TOKEN,
+    BETTERSTACK_INGEST_URL:            !!process.env.BETTERSTACK_INGEST_URL,
+    // Phase 9 — Upstash
+    UPSTASH_REDIS_REST_URL:            !!process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN:          !!process.env.UPSTASH_REDIS_REST_TOKEN,
   }
 
   const required = [
@@ -92,6 +103,13 @@ function logStartup() {
     console.log(fmt('SUPPORT_EMAIL',                  'SUPPORT_EMAIL'))
     console.log('  ·')
     console.log(fmt('FAL_KEY',                        'FAL_KEY',                        true))
+    console.log('  ·')
+    console.log(fmt('SENTRY_DSN',                   'SENTRY_DSN'))
+    console.log(fmt('NEXT_PUBLIC_SENTRY_DSN',       'NEXT_PUBLIC_SENTRY_DSN'))
+    console.log(fmt('BETTERSTACK_SOURCE_TOKEN',     'BETTERSTACK_SOURCE_TOKEN'))
+    console.log(fmt('BETTERSTACK_INGEST_URL',       'BETTERSTACK_INGEST_URL'))
+    console.log(fmt('UPSTASH_REDIS_REST_URL',       'UPSTASH_REDIS_REST_URL'))
+    console.log(fmt('UPSTASH_REDIS_REST_TOKEN',     'UPSTASH_REDIS_REST_TOKEN'))
     console.log(`  ${'DRY_RUN'.padEnd(36)}${process.env.DRY_RUN === 'true' ? 'true — fixture data, zero API cost' : 'false — real API calls'}`)
     console.log(`  ${'ADMIN_USER_IDS'.padEnd(36)}${process.env.ADMIN_USER_IDS ? 'set' : 'not set — admin features disabled'}`)
     console.log('─────────────────────────────────────────────────\n')

@@ -7,6 +7,7 @@ import path from 'path'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { dryRunVideoOutput } from '@/__fixtures__/video'
 import type { AgentResult, ChannelConfig, VideoOutput } from '@/types'
+import { log } from '@/lib/logger'
 
 // ─── Style modifiers ──────────────────────────────────────────────────────────
 // Supports future Phase 10 style presets keyed by config.niche or pipeline_mode
@@ -112,7 +113,11 @@ export class VideoAgent {
 
     // DRY_RUN guard — must be inside run() per api.md conventions
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
+
+    await log.info('[VideoAgent] start', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video' })
+
     if (isDryRun) {
+      await log.info('[VideoAgent] complete', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, dryRun: true })
       return {
         status: 'success',
         data: dryRunVideoOutput,
@@ -121,10 +126,11 @@ export class VideoAgent {
     }
 
     if (!process.env.FAL_KEY) {
+      await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: 'FAL_KEY env var not set' })
       return {
         status: 'failed',
         data: null,
-        error: 'FAL_KEY env var not set',
+        error: 'Video generation is not configured. Contact support.',
         durationMs: Date.now() - start,
       }
     }
@@ -189,10 +195,11 @@ export class VideoAgent {
           cleanup()
           const msg = falErr instanceof Error ? falErr.message : String(falErr)
           console.error(`[VideoAgent] FAL image ${i + 1} failed:`, msg)
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `FAL.ai image generation failed (beat ${i}): ${msg}`.slice(0, 200) })
           return {
             status: 'failed',
             data: null,
-            error: `FAL.ai image generation failed (beat ${i}): ${msg}`.slice(0, 200),
+            error: 'Image generation failed. Please try again.',
             durationMs: Date.now() - start,
           }
         }
@@ -203,10 +210,11 @@ export class VideoAgent {
         if (!imageUrl) {
           console.error(`[VideoAgent] FAL image ${i + 1} — no URL in response:`, JSON.stringify(result.data).slice(0, 200))
           cleanup()
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `FAL.ai returned no image URL for beat ${i}` })
           return {
             status: 'failed',
             data: null,
-            error: `FAL.ai returned no image URL for beat ${i}`,
+            error: 'Image generation returned no result. Please try again.',
             durationMs: Date.now() - start,
           }
         }
@@ -215,10 +223,11 @@ export class VideoAgent {
         if (!imageResp.ok) {
           console.error(`[VideoAgent] download image ${i + 1} failed: HTTP ${imageResp.status}`)
           cleanup()
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Failed to download FAL.ai image for beat ${i}: ${imageResp.status}` })
           return {
             status: 'failed',
             data: null,
-            error: `Failed to download FAL.ai image for beat ${i}: ${imageResp.status}`.slice(0, 120),
+            error: 'Failed to retrieve generated image. Please try again.',
             durationMs: Date.now() - start,
           }
         }
@@ -246,10 +255,11 @@ export class VideoAgent {
       if (!audioResp.ok) {
         console.error(`[VideoAgent] narration download failed: HTTP ${audioResp.status}`)
         cleanup()
+        await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Failed to download narration audio: ${audioResp.status}` })
         return {
           status: 'failed',
           data: null,
-          error: `Failed to download narration audio: ${audioResp.status}`.slice(0, 120),
+          error: 'Failed to retrieve audio for video composition. Please try again.',
           durationMs: Date.now() - start,
         }
       }
@@ -295,10 +305,11 @@ export class VideoAgent {
       if (uploadError) {
         console.error('[VideoAgent] Supabase upload failed:', uploadError.message)
         cleanup()
+        await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Supabase storage upload failed: ${uploadError.message}` })
         return {
           status: 'failed',
           data: null,
-          error: `Supabase storage upload failed: ${uploadError.message}`.slice(0, 120),
+          error: 'Failed to save video file. Please try again.',
           durationMs: Date.now() - start,
         }
       }
@@ -318,6 +329,7 @@ export class VideoAgent {
         // Non-fatal — cleanup failure should not fail the pipeline
       }
 
+      await log.info('[VideoAgent] complete', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start })
       return {
         status: 'success',
         data: {
@@ -331,10 +343,11 @@ export class VideoAgent {
       cleanup()
       const message = err instanceof Error ? err.message : String(err)
       console.error('[VideoAgent] Uncaught error:', message)
+      await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: message })
       return {
         status: 'failed',
         data: null,
-        error: `VideoAgent failed: ${message}`.slice(0, 300),
+        error: 'Video generation failed unexpectedly. Please try again.',
         durationMs: Date.now() - start,
       }
     }

@@ -324,7 +324,7 @@ export async function runPipeline(
           isDryRun: opts?.isDryRun,
         })
 
-        onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
+        onEvent?.({ type: 'pipeline_done', status: 'failed', timestamp: new Date().toISOString() })
         return {
           runId,
           status: 'failed',
@@ -474,7 +474,7 @@ export async function runPipeline(
       // non-fatal — Supabase write failure in error path
     }
 
-    onEvent?.({ type: 'pipeline_done', timestamp: new Date().toISOString() })
+    onEvent?.({ type: 'pipeline_done', status: 'failed', timestamp: new Date().toISOString() })
     return {
       runId,
       status: 'failed',

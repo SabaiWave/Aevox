@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (!adminOk) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
   // ── 3. Rate limit (by userId) ──────────────────────────────────────────────
-  const { limited, retryAfterSeconds } = checkRateLimit(`quota-sim:${userId}`, {
+  const { limited, retryAfterSeconds } = await checkRateLimit(`quota-sim:${userId}`, {
     windowMs: 60_000,
     max: 10,
   })

@@ -5,6 +5,7 @@ import { VideoAgent } from '@/agents/video'
 import { PublishAgent } from '@/agents/publish'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { checkVoiceQuota } from '@/lib/quota'
+import { log } from '@/lib/logger'
 import type {
   AgentResult,
   ChannelConfig,
@@ -74,38 +75,17 @@ export function buildCostSummary(
 }
 
 function logCostSummary(runId: string, cost: CostSummary): void {
-  const fmt = (n: number) => `$${n.toFixed(4)}`
   const reused = new Set(cost.reusedStages ?? [])
-  const isRetry = reused.size > 0
-
-  console.log(`[Run ${runId.slice(0, 8)}] Cost summary${isRetry ? ' (retry — skipped stages show $0.00)' : ''}:`)
-
-  if (reused.has('research')) {
-    console.log(`  Research  — (reused from prior run)                  $0.0000`)
-  } else {
-    console.log(`  Research  — ${cost.research.searches} search(es)                      ${fmt(cost.research.usd)}`)
-  }
-
-  if (reused.has('script')) {
-    console.log(`  Script    — (reused from prior run)                  $0.0000`)
-  } else {
-    console.log(`  Script    — ${cost.script.tokensIn} in / ${cost.script.tokensOut} out tokens  ${fmt(cost.script.usd)}`)
-  }
-
-  if (reused.has('voice')) {
-    console.log(`  Voice     — (reused from prior run)                  $0.0000`)
-  } else {
-    console.log(`  Voice     — ${cost.voice.chars} chars                           ${fmt(cost.voice.usd)}`)
-  }
-
-  if (reused.has('video')) {
-    console.log(`  Video     — (reused from prior run)                  $0.0000`)
-  } else {
-    console.log(`  Video     — ${cost.video.images} image(s) @ FAL.ai flux/dev        ${fmt(cost.video.usd)}`)
-  }
-
-  console.log(`  ──────────────────────────────────────────────────────`)
-  console.log(`  Total${isRetry ? ' (this retry only)' : ''}                                     ${fmt(cost.totalUsd)}`)
+  void log.info('[orchestrator] cost summary', {
+    runId,
+    isRetry: reused.size > 0,
+    reusedStages: [...reused],
+    research: reused.has('research') ? null : { searches: cost.research.searches, usd: cost.research.usd },
+    script: reused.has('script') ? null : { tokensIn: cost.script.tokensIn, tokensOut: cost.script.tokensOut, usd: cost.script.usd },
+    voice: reused.has('voice') ? null : { chars: cost.voice.chars, usd: cost.voice.usd },
+    video: reused.has('video') ? null : { images: cost.video.images, usd: cost.video.usd },
+    totalUsd: cost.totalUsd,
+  })
 }
 
 // ─── buildDegradedContext ─────────────────────────────────────────────────────
@@ -302,7 +282,7 @@ export async function runPipeline(
       onEvent?.({ type: 'stage_complete', stage: 'voice', state: 'complete', data: voiceResult, timestamp: new Date().toISOString() })
     } else {
       if (!opts?.userTier) {
-        console.warn('[orchestrator] userTier not provided — defaulting to unlimited (pro). Verify caller passes tier.')
+        void log.info('[orchestrator] userTier not provided — defaulting to pro', { runId, warning: 'userTier missing from caller' })
       }
       const voiceQuota = await checkVoiceQuota(config.userId, opts?.userTier ?? 'pro')
       if (!voiceQuota.allowed) {
@@ -444,7 +424,7 @@ export async function runPipeline(
     }
   } catch (err) {
     // Top-level safety net — agents should never throw, but protect regardless
-    console.error('[orchestrator] Unexpected top-level error:', err instanceof Error ? err.message : err)
+    void log.error('[orchestrator] unexpected top-level error', { runId, error: err instanceof Error ? err.message : String(err) })
     onEvent?.({ type: 'pipeline_error', message: err instanceof Error ? err.message : 'Unknown error', timestamp: new Date().toISOString() })
 
     const degradedContext = buildDegradedContext(
@@ -535,7 +515,7 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
     const { error } = await supabase.from('videos').upsert(upsertData)
 
     if (error) {
-      console.error('[orchestrator] Supabase write failed:', error.message)
+      void log.error('[orchestrator] Supabase write failed', { runId: args.runId, error: error.message })
     }
 
     // Skip chars_used update on retry — voice was reused, quota already counted on original run
@@ -547,12 +527,12 @@ async function writePipelineRun(args: WriteArgs): Promise<void> {
           .update({ chars_used: charsUsed })
           .eq('id', args.runId)
         if (updateError) {
-          console.error('[orchestrator] Failed to update chars_used:', updateError.message)
+          void log.error('[orchestrator] Failed to update chars_used', { runId: args.runId, error: updateError.message })
         }
       }
     }
   } catch (err) {
     // Supabase failures never propagate — in-memory result is source of truth
-    console.error('[orchestrator] Supabase write threw unexpectedly:', err instanceof Error ? err.message : err)
+    void log.error('[orchestrator] Supabase write threw unexpectedly', { runId: args.runId, error: err instanceof Error ? err.message : String(err) })
   }
 }

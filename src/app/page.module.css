@@ -1,8 +1,58 @@
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+
 .main {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   min-height: 100vh;
+}
+
+/* ── Section primitives ──────────────────────────────────────────────────── */
+
+.sectionPadded {
+  width: 100%;
+  padding: 4rem 1.5rem;
+}
+
+.sectionAlt {
+  background-color: var(--color-surface-1);
+  border-top: 1px solid var(--color-border-1);
+}
+
+.sectionContent {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin: 0 0 2.5rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--color-text-primary);
+  margin: 0 0 0.5rem;
+  text-wrap: balance;
+}
+
+.sectionSubtitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.heroSection {
+  display: flex;
+  justify-content: center;
   padding: 0 1.5rem;
 }
 
@@ -13,15 +63,17 @@
   text-align: center;
   max-width: 760px;
   width: 100%;
-  padding: 4rem 0 3rem;
+  padding: 4rem 0 3.5rem;
   min-height: 70vh;
   justify-content: center;
 }
 
 .eyebrow {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-mono), monospace;
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--color-text-tertiary);
   margin: 0 0 1rem 0;
 }
@@ -47,6 +99,16 @@
   margin: 0 0 2rem 0;
 }
 
+/* ── CTA buttons ─────────────────────────────────────────────────────────── */
+
+.ctaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .cta {
   display: inline-flex;
   align-items: center;
@@ -60,27 +122,142 @@
   padding: 0.625rem 1.25rem;
   text-decoration: none;
   transition: filter 0.15s ease;
+  white-space: nowrap;
 }
 
 .cta:hover {
   filter: brightness(1.15);
 }
 
-.howItWorks {
-  width: 100%;
-  max-width: 1080px;
-  padding: 2rem 0 4rem;
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  text-decoration: none;
+  border: 1px solid var(--color-border-2);
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
 }
 
-.sectionTitle {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
+.ctaSecondary:hover {
   color: var(--color-text-primary);
-  text-align: center;
-  margin: 0 0 2rem 0;
-  text-wrap: balance;
+  border-color: var(--color-text-tertiary);
 }
+
+.ctaGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  text-decoration: none;
+  border: 1px solid var(--color-primary);
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.ctaGhost:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+/* ── Pipeline strip ──────────────────────────────────────────────────────── */
+
+.pipelineStrip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pipelineStageRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.pipelineStage {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-status-complete);
+  background-color: color-mix(in srgb, var(--color-status-complete) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-complete) 20%, transparent);
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+}
+
+.pipelineArrow {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  display: block;
+  margin: 0 0.25rem;
+}
+
+/* ── Features ────────────────────────────────────────────────────────────── */
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background-color: var(--color-border-1);
+  border: 1px solid var(--color-border-1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.featureCard {
+  background-color: var(--color-bg);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.featureTag {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 0.25rem;
+}
+
+.featureTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.featureDescription {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── How it works ────────────────────────────────────────────────────────── */
 
 .stepsGrid {
   display: grid;
@@ -98,7 +275,7 @@
 }
 
 .stepNumber {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-mono), monospace;
   font-weight: 700;
   font-size: 0.875rem;
   color: var(--color-text-tertiary);
@@ -117,25 +294,255 @@
 .stepDescription {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
   color: var(--color-text-secondary);
   margin: 0;
 }
 
+/* ── Pricing ─────────────────────────────────────────────────────────────── */
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.pricingCard {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-1);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pricingCardHighlight {
+  border-color: var(--color-primary);
+}
+
+.pricingCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pricingPlanName {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.pricingTag {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border-2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.pricingTagHighlight {
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.pricingPriceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.pricingPrice {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pricingNote {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+}
+
+.pricingDescription {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-1);
+}
+
+.pricingFeatureList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.pricingFeatureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.pricingCheck {
+  color: var(--color-status-complete);
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.pricingFootnote {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  margin: 1.5rem 0 0;
+}
+
+/* ── FAQ ─────────────────────────────────────────────────────────────────── */
+
+.faqWrap {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+}
+
+.faqItem {
+  border-bottom: 1px solid var(--color-border-1);
+}
+
+.faqButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.125rem 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.faqQuestion {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.faqChevronOpen {
+  transform: rotate(180deg);
+  color: var(--color-text-secondary);
+}
+
+.faqAnswer {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding-bottom: 1.125rem;
+}
+
+/* ── Bottom CTA ──────────────────────────────────────────────────────────── */
+
+.bottomCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 2rem 0;
+}
+
+.bottomCtaTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.bottomCtaText {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
 @media (max-width: 1024px) {
   .stepsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .pricingGrid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
 }
 
 @media (max-width: 768px) {
+  .hero {
+    min-height: 60vh;
+    padding: 3rem 0 2.5rem;
+  }
+
   .stepsGrid {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    min-height: 60vh;
-    padding: 3rem 0 2.5rem;
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionPadded {
+    padding: 3rem 1.25rem;
+  }
+
+  .pipelineStrip {
+    gap: 0;
+  }
+
+  .pricingGrid {
+    max-width: 100%;
   }
 }

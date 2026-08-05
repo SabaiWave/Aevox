@@ -25,9 +25,10 @@ interface RunRowProps {
     created_at: string
   }
   formattedDate: string
+  configName?: string | null
 }
 
-export function RunRow({ run, formattedDate }: RunRowProps) {
+export function RunRow({ run, formattedDate, configName }: RunRowProps) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -62,19 +63,20 @@ export function RunRow({ run, formattedDate }: RunRowProps) {
           >
             {run.topic}
           </span>
-          <span
-            className="font-mono"
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--color-text-tertiary)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              display: 'block',
-            }}
-          >
-            {run.id}
-          </span>
+          {configName && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-text-tertiary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+              }}
+            >
+              {configName}
+            </span>
+          )}
         </div>
       </Link>
 

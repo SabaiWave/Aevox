@@ -110,6 +110,64 @@ describe('ScriptAgent', () => {
     })
   })
 
+  // ── Content policy (TOPIC_REJECTED sentinel) ──────────────────────────────
+
+  describe('content policy', () => {
+    beforeAll(() => {
+      process.env.DRY_RUN = 'false'
+      process.env.ANTHROPIC_API_KEY = 'test-key'
+    })
+
+    afterAll(() => {
+      delete process.env.DRY_RUN
+      delete process.env.ANTHROPIC_API_KEY
+    })
+
+    beforeEach(() => {
+      jest.clearAllMocks()
+    })
+
+    it('returns status failed with rejection message when Claude returns TOPIC_REJECTED', async () => {
+      mockMessagesCreate.mockResolvedValue({
+        content: [{ type: 'text', text: 'TOPIC_REJECTED' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+
+      const agent = new ScriptAgent()
+      const result = await agent.run('explicit adult content topic', dryRunSourcePackage, darkloreConfig)
+
+      expect(result.status).toBe('failed')
+      expect(result.data).toBeNull()
+      expect(result.error).toContain('rejected')
+    })
+
+    it('returns status failed when TOPIC_REJECTED has surrounding whitespace', async () => {
+      mockMessagesCreate.mockResolvedValue({
+        content: [{ type: 'text', text: '  TOPIC_REJECTED  ' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+
+      const agent = new ScriptAgent()
+      const result = await agent.run('off-niche topic', dryRunSourcePackage, darkloreConfig)
+
+      expect(result.status).toBe('failed')
+      expect(result.data).toBeNull()
+    })
+
+    it('does not reject a valid topic that contains the word REJECTED', async () => {
+      mockMessagesCreate.mockResolvedValue({
+        content: [{ type: 'text', text: 'The spirit was rejected by the village elders...' }],
+        usage: { input_tokens: 10, output_tokens: 20 },
+      })
+
+      const agent = new ScriptAgent()
+      const result = await agent.run('A ghost rejected by its community', dryRunSourcePackage, darkloreConfig)
+
+      expect(result.status).toBe('success')
+      expect(result.data).toBe('The spirit was rejected by the village elders...')
+    })
+  })
+
   // ── Topic sanitization ─────────────────────────────────────────────────────
 
   describe('topic sanitization', () => {

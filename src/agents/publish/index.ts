@@ -110,9 +110,9 @@ export class PublishAgent {
     const start = Date.now()
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    await log.info('[PublishAgent] start', { agent: 'PublishAgent', configId: config.id, stage: 'publish' })
-
     try {
+      await log.info('[PublishAgent] start', { agent: 'PublishAgent', configId: config.id, stage: 'publish' })
+
       if (isDryRun) {
         await log.info('[PublishAgent] complete', { agent: 'PublishAgent', configId: config.id, stage: 'publish', durationMs: Date.now() - start, dryRun: true })
         return {
@@ -148,7 +148,7 @@ export class PublishAgent {
         durationMs: Date.now() - start,
       }
     } catch (err) {
-      await log.error('[PublishAgent] failed', { agent: 'PublishAgent', configId: config.id, stage: 'publish', durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) })
+      await log.error('[PublishAgent] failed', { agent: 'PublishAgent', configId: config?.id, stage: 'publish', durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) })
       return {
         status: 'failed',
         data: null,

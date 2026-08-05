@@ -113,8 +113,6 @@ export class VideoAgent {
     // DRY_RUN guard — must be inside run() per api.md conventions
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    await log.info('[VideoAgent] start', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video' })
-
     if (isDryRun) {
       await log.info('[VideoAgent] complete', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, dryRun: true })
       return {
@@ -150,6 +148,7 @@ export class VideoAgent {
     }
 
     try {
+      await log.info('[VideoAgent] start', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video' })
       // Set up temp directories
       fs.mkdirSync(imagesDir, { recursive: true })
       fs.mkdirSync(clipsDir, { recursive: true })

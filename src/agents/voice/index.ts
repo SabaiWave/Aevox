@@ -13,9 +13,8 @@ export class VoiceAgent {
     const storagePath = `videos/${runId}/audio.mp3`
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    await log.info('[VoiceAgent] start', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice' })
-
     try {
+      await log.info('[VoiceAgent] start', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice' })
       if (isDryRun) {
         const { dryRunVoiceOutput } = await import('@/__fixtures__/voice')
         await log.info('[VoiceAgent] complete', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, dryRun: true })

@@ -66,8 +66,6 @@ export class ScriptAgent {
     const start = Date.now()
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    await log.info('[ScriptAgent] start', { agent: 'ScriptAgent', configId: config.id, stage: 'script' })
-
     if (isDryRun) {
       await log.info('[ScriptAgent] complete', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, dryRun: true })
       return {
@@ -78,6 +76,7 @@ export class ScriptAgent {
     }
 
     try {
+      await log.info('[ScriptAgent] start', { agent: 'ScriptAgent', configId: config.id, stage: 'script' })
       const apiKey = process.env.ANTHROPIC_API_KEY
       if (!apiKey) {
         await log.error('[ScriptAgent] failed', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, error: 'Script agent is not configured' })

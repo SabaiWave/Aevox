@@ -227,7 +227,7 @@ describe('VideoAgent', () => {
 
       expect(result.status).toBe('failed')
       expect(result.data).toBeNull()
-      expect(result.error).toContain('FAL_KEY')
+      expect(result.error).toContain('Video generation is not configured')
     })
   })
 
@@ -381,7 +381,7 @@ describe('VideoAgent', () => {
       const agent = new VideoAgent()
       const result = await agent.run(SCRIPT, darkloreConfig, AUDIO_URL, RUN_ID)
 
-      expect(result.error).toContain('beat')
+      expect(result.error).toContain('Image generation returned no result')
     })
   })
 
@@ -497,10 +497,10 @@ describe('VideoAgent', () => {
 
       expect(result.status).toBe('failed')
       expect(result.data).toBeNull()
-      expect(result.error).toContain('Supabase storage upload failed')
+      expect(result.error).toContain('Failed to save video file')
     })
 
-    it('includes Supabase error message in result error', async () => {
+    it('includes user-friendly error when Supabase upload fails', async () => {
       mockUpload.mockResolvedValue({
         data: null,
         error: { message: 'Exceeded storage limit' },
@@ -510,7 +510,7 @@ describe('VideoAgent', () => {
       const agent = new VideoAgent()
       const result = await agent.run(SCRIPT, darkloreConfig, AUDIO_URL, RUN_ID)
 
-      expect(result.error).toContain('Exceeded storage limit')
+      expect(result.error).toContain('Failed to save video file')
     })
 
     it('does not throw — resolves with AgentResult on unexpected error', async () => {

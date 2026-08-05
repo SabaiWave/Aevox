@@ -19,8 +19,6 @@ export class ResearchAgent {
     const start = Date.now()
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
-    await log.info('[ResearchAgent] start', { agent: 'ResearchAgent', configId: _config.id, stage: 'research' })
-
     if (isDryRun) {
       await log.info('[ResearchAgent] complete', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, dryRun: true })
       return {
@@ -34,6 +32,7 @@ export class ResearchAgent {
     }
 
     try {
+      await log.info('[ResearchAgent] start', { agent: 'ResearchAgent', configId: _config.id, stage: 'research' })
       const apiKey = process.env.TAVILY_API_KEY
       if (!apiKey) {
         await log.error('[ResearchAgent] failed', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, error: 'TAVILY_API_KEY is not set' })

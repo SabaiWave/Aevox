@@ -20,6 +20,7 @@ export default async function LandingNav() {
             </>
           ) : (
             <>
+              <Link href="/#pricing" className={styles.ghost}>Pricing</Link>
               <Link href="/sign-in" className={styles.ghost}>Sign in</Link>
               <Link href="/sign-up" className={styles.primary}>Start free</Link>
             </>

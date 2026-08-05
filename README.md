@@ -47,8 +47,8 @@ Every step is driven by a **channel config** — tone, source types, script stru
 
 | Tier    | Price  | Configs | Videos/mo |
 | ------- | ------ | ------- | --------- |
-| Starter | $49/mo | 1       | 8         |
-| Pro     | $99/mo | 3       | Unlimited |
+| Creator | $49/mo | 1       | 8         |
+| Studio  | $99/mo | 3       | Unlimited |
 
 Free tier: 2 pipeline runs, no card required.
 

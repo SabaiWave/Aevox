@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   // ── 1. Rate limit (by userId) ─────────────────────────────────────────────
-  const { limited, retryAfterSeconds } = checkRateLimit(`stripe-checkout:${userId}`, {
+  const { limited, retryAfterSeconds } = await checkRateLimit(`stripe-checkout:${userId}`, {
     windowMs: 60_000,
     max: 10,
   })

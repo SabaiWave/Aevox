@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import type { AgentResult, ChannelConfig, VoiceOutput } from '@/types'
+import { log } from '@/lib/logger'
 
 export class VoiceAgent {
   async run(
@@ -13,8 +14,10 @@ export class VoiceAgent {
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     try {
+      await log.info('[VoiceAgent] start', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice' })
       if (isDryRun) {
         const { dryRunVoiceOutput } = await import('@/__fixtures__/voice')
+        await log.info('[VoiceAgent] complete', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, dryRun: true })
         return {
           status: 'success',
           data: {
@@ -29,14 +32,16 @@ export class VoiceAgent {
 
       const apiKey = process.env.ELEVENLABS_API_KEY
       if (!apiKey) {
+        await log.error('[VoiceAgent] failed', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, error: 'Voice agent is not configured' })
         return {
           status: 'failed',
           data: null,
-          error: 'Voice agent is not configured',
+          error: 'Voice service is unavailable. Please contact support.',
           durationMs: Date.now() - start,
         }
       }
       if (!/^[a-zA-Z0-9]{10,40}$/.test(config.voiceId)) {
+        await log.error('[VoiceAgent] failed', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, error: 'Invalid voice ID' })
         return {
           status: 'failed',
           data: null,
@@ -64,8 +69,7 @@ export class VoiceAgent {
 
       if (!response.ok) {
         const errText = await response.text().catch(() => response.statusText)
-        console.error(`[VoiceAgent] ElevenLabs ${response.status}:`, errText)
-        let userMessage = `Voice generation failed (${response.status})`
+        let userMessage = 'Voice generation failed. Please try again.'
         let parsedErr: { detail?: { code?: string } } = {}
         try { parsedErr = JSON.parse(errText) } catch { /* not JSON */ }
         const errCode = parsedErr?.detail?.code
@@ -78,6 +82,7 @@ export class VoiceAgent {
         } else if (response.status === 429) {
           userMessage = 'Voice generation is temporarily unavailable. Try again shortly.'
         }
+        await log.error('[VoiceAgent] failed', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, statusCode: response.status, detail: errText })
         return {
           status: 'failed',
           data: null,
@@ -99,10 +104,11 @@ export class VoiceAgent {
         })
 
       if (uploadError) {
+        await log.error('[VoiceAgent] failed', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, error: `Supabase upload error: ${uploadError.message}` })
         return {
           status: 'failed',
           data: null,
-          error: `Supabase upload error: ${uploadError.message}`,
+          error: 'Failed to save audio file. Please try again.',
           durationMs: Date.now() - start,
         }
       }
@@ -111,6 +117,7 @@ export class VoiceAgent {
         .from('media')
         .getPublicUrl(storagePath)
 
+      await log.info('[VoiceAgent] complete', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start })
       return {
         status: 'success',
         data: {
@@ -122,11 +129,11 @@ export class VoiceAgent {
         usage: { charsUsed: safeScript.length },
       }
     } catch (err) {
-      console.error('[VoiceAgent] Unexpected error:', err)
+      await log.error('[VoiceAgent] failed', { agent: 'VoiceAgent', runId, configId: config.id, stage: 'voice', durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) })
       return {
         status: 'failed',
         data: null,
-        error: 'Voice generation failed unexpectedly. Check server logs.',
+        error: 'Voice generation failed unexpectedly. Please try again.',
         durationMs: Date.now() - start,
       }
     }

@@ -7,6 +7,7 @@ import path from 'path'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { dryRunVideoOutput } from '@/__fixtures__/video'
 import type { AgentResult, ChannelConfig, VideoOutput } from '@/types'
+import { log } from '@/lib/logger'
 
 // ─── Style modifiers ──────────────────────────────────────────────────────────
 // Supports future Phase 10 style presets keyed by config.niche or pipeline_mode
@@ -91,9 +92,8 @@ function applyKenBurns(
         '-pix_fmt', 'yuv420p',
       ])
       .output(outputClipPath)
-      .on('start', (cmd) => console.log(`[VideoAgent] FFmpeg clip ${index} start: ${cmd.slice(0, 120)}`))
-      .on('end', () => { console.log(`[VideoAgent] FFmpeg clip ${index} done`); resolve() })
-      .on('error', (err) => { console.error(`[VideoAgent] FFmpeg clip ${index} error:`, err.message); reject(err) })
+      .on('end', () => { resolve() })
+      .on('error', (err) => { reject(err) })
       .run()
   })
 }
@@ -112,7 +112,9 @@ export class VideoAgent {
 
     // DRY_RUN guard — must be inside run() per api.md conventions
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
+
     if (isDryRun) {
+      await log.info('[VideoAgent] complete', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, dryRun: true })
       return {
         status: 'success',
         data: dryRunVideoOutput,
@@ -121,10 +123,11 @@ export class VideoAgent {
     }
 
     if (!process.env.FAL_KEY) {
+      await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: 'FAL_KEY env var not set' })
       return {
         status: 'failed',
         data: null,
-        error: 'FAL_KEY env var not set',
+        error: 'Video generation is not configured. Contact support.',
         durationMs: Date.now() - start,
       }
     }
@@ -145,6 +148,7 @@ export class VideoAgent {
     }
 
     try {
+      await log.info('[VideoAgent] start', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video' })
       // Set up temp directories
       fs.mkdirSync(imagesDir, { recursive: true })
       fs.mkdirSync(clipsDir, { recursive: true })
@@ -159,8 +163,6 @@ export class VideoAgent {
       const allBeats = splitScriptIntoBeats(script, beatTarget)
       const beats = allBeats.slice(0, beatTarget)
       const imageCount = beats.length
-      console.log(`[VideoAgent] ${imageCount} beats (target=${beatTarget}), tmpDir=${tmpDir}`)
-
       // ── Step 2: Resolve style suffix ──────────────────────────────────────
       const styleKey = config.niche?.toLowerCase().replace(/\s+/g, '') ?? ''
       const styleSuffix =
@@ -168,13 +170,11 @@ export class VideoAgent {
         style_modifiers['darklore']
 
       // ── Step 3: Generate images via FAL.ai FLUX.2 [dev] ──────────────────
-      console.log(`[VideoAgent] Step 3: generating ${beats.length} images via FAL.ai`)
       const imagePaths: string[] = []
       for (let i = 0; i < beats.length; i++) {
         const beat = beats[i]
         const prompt = `${beat}\n\n${styleSuffix}`
 
-        console.log(`[VideoAgent] FAL image ${i + 1}/${beats.length} — submitting`)
         let result: Awaited<ReturnType<typeof fal.subscribe>>
         try {
           result = await fal.subscribe('fal-ai/flux/dev', {
@@ -184,15 +184,14 @@ export class VideoAgent {
               num_images: 1,
             },
           })
-          console.log(`[VideoAgent] FAL image ${i + 1}/${beats.length} — received`)
         } catch (falErr) {
           cleanup()
           const msg = falErr instanceof Error ? falErr.message : String(falErr)
-          console.error(`[VideoAgent] FAL image ${i + 1} failed:`, msg)
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `FAL.ai image generation failed (beat ${i}): ${msg}`.slice(0, 200) })
           return {
             status: 'failed',
             data: null,
-            error: `FAL.ai image generation failed (beat ${i}): ${msg}`.slice(0, 200),
+            error: 'Image generation failed. Please try again.',
             durationMs: Date.now() - start,
           }
         }
@@ -201,24 +200,24 @@ export class VideoAgent {
           .images?.[0]?.url as string
 
         if (!imageUrl) {
-          console.error(`[VideoAgent] FAL image ${i + 1} — no URL in response:`, JSON.stringify(result.data).slice(0, 200))
           cleanup()
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `FAL.ai returned no image URL for beat ${i}` })
           return {
             status: 'failed',
             data: null,
-            error: `FAL.ai returned no image URL for beat ${i}`,
+            error: 'Image generation returned no result. Please try again.',
             durationMs: Date.now() - start,
           }
         }
 
         const imageResp = await fetch(imageUrl)
         if (!imageResp.ok) {
-          console.error(`[VideoAgent] download image ${i + 1} failed: HTTP ${imageResp.status}`)
           cleanup()
+          await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Failed to download FAL.ai image for beat ${i}: ${imageResp.status}` })
           return {
             status: 'failed',
             data: null,
-            error: `Failed to download FAL.ai image for beat ${i}: ${imageResp.status}`.slice(0, 120),
+            error: 'Failed to retrieve generated image. Please try again.',
             durationMs: Date.now() - start,
           }
         }
@@ -226,11 +225,9 @@ export class VideoAgent {
         const imagePath = path.join(imagesDir, `beat_${i}.jpg`)
         fs.writeFileSync(imagePath, imageBuffer)
         imagePaths.push(imagePath)
-        console.log(`[VideoAgent] image ${i + 1} saved (${imageBuffer.length} bytes)`)
       }
 
       // ── Step 4: Apply Ken Burns effect — parallel across all clips ─────────
-      console.log(`[VideoAgent] Step 4: Ken Burns FFmpeg on ${imagePaths.length} clips (parallel)`)
       const clipEntries = await Promise.all(
         imagePaths.map(async (imgPath, i) => {
           const clipPath = path.join(clipsDir, `clip_${i}.mp4`)
@@ -241,24 +238,21 @@ export class VideoAgent {
       const clipPaths = clipEntries
 
       // ── Step 5: Download narration MP3 locally ────────────────────────────
-      console.log(`[VideoAgent] Step 5: downloading narration audio`)
       const audioResp = await fetch(audioUrl)
       if (!audioResp.ok) {
-        console.error(`[VideoAgent] narration download failed: HTTP ${audioResp.status}`)
         cleanup()
+        await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Failed to download narration audio: ${audioResp.status}` })
         return {
           status: 'failed',
           data: null,
-          error: `Failed to download narration audio: ${audioResp.status}`.slice(0, 120),
+          error: 'Failed to retrieve audio for video composition. Please try again.',
           durationMs: Date.now() - start,
         }
       }
       const audioBuffer = Buffer.from(await audioResp.arrayBuffer())
       fs.writeFileSync(narrationPath, audioBuffer)
-      console.log(`[VideoAgent] narration saved (${audioBuffer.length} bytes)`)
 
       // ── Step 6: Write concat list and merge clips + narration ─────────────
-      console.log(`[VideoAgent] Step 6: FFmpeg merge ${clipPaths.length} clips + audio`)
       const concatLines = clipPaths.map((p) => `file '${p}'`).join('\n')
       fs.writeFileSync(concatPath, concatLines)
 
@@ -273,14 +267,12 @@ export class VideoAgent {
             '-shortest',
           ])
           .output(outputPath)
-          .on('start', (cmd) => console.log(`[VideoAgent] FFmpeg merge start: ${cmd.slice(0, 120)}`))
-          .on('end', () => { console.log('[VideoAgent] FFmpeg merge done'); resolve() })
-          .on('error', (err) => { console.error('[VideoAgent] FFmpeg merge error:', err.message); reject(err) })
+          .on('end', () => { resolve() })
+          .on('error', (err) => { reject(err) })
           .run()
       })
 
       // ── Step 7: Upload MP4 to Supabase Storage ─────────────────────────────
-      console.log(`[VideoAgent] Step 7: uploading to Supabase Storage`)
       const supabase = getSupabaseServerClient()
       const fileBuffer = fs.readFileSync(outputPath)
 
@@ -293,16 +285,15 @@ export class VideoAgent {
         })
 
       if (uploadError) {
-        console.error('[VideoAgent] Supabase upload failed:', uploadError.message)
         cleanup()
+        await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: `Supabase storage upload failed: ${uploadError.message}` })
         return {
           status: 'failed',
           data: null,
-          error: `Supabase storage upload failed: ${uploadError.message}`.slice(0, 120),
+          error: 'Failed to save video file. Please try again.',
           durationMs: Date.now() - start,
         }
       }
-      console.log('[VideoAgent] Supabase upload done')
 
       const { data: urlData } = supabase.storage
         .from('media')
@@ -318,6 +309,7 @@ export class VideoAgent {
         // Non-fatal — cleanup failure should not fail the pipeline
       }
 
+      await log.info('[VideoAgent] complete', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start })
       return {
         status: 'success',
         data: {
@@ -330,11 +322,11 @@ export class VideoAgent {
     } catch (err) {
       cleanup()
       const message = err instanceof Error ? err.message : String(err)
-      console.error('[VideoAgent] Uncaught error:', message)
+      await log.error('[VideoAgent] failed', { agent: 'VideoAgent', runId, configId: config.id, stage: 'video', durationMs: Date.now() - start, error: message })
       return {
         status: 'failed',
         data: null,
-        error: `VideoAgent failed: ${message}`.slice(0, 300),
+        error: 'Video generation failed unexpectedly. Please try again.',
         durationMs: Date.now() - start,
       }
     }

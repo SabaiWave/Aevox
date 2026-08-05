@@ -271,7 +271,88 @@ export default async function AdminDevPage() {
         <QuotaSimButtons />
       </section>
 
-      {/* Section 3: Run Log */}
+      {/* Section 4: Debug API */}
+      <section style={sectionStyle}>
+        <h2 style={sectionHeadingStyle}>Debug API</h2>
+        <p
+          style={{
+            fontSize: '0.875rem',
+            color: 'var(--color-text-secondary)',
+            margin: 0,
+          }}
+        >
+          Admin only. Opens in new tab. Check JSON response to confirm what was sent.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          {[
+            { label: 'Health Check', sublabel: 'GET /api/debug/health', href: '/api/debug/health' },
+            { label: 'Sentry Test', sublabel: 'GET /api/debug/sentry — triggers test error', href: '/api/debug/sentry' },
+            { label: 'BetterStack Test', sublabel: 'GET /api/debug/betterstack — sends test log', href: '/api/debug/betterstack' },
+          ].map(({ label, sublabel, href }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border-2)',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>{label}</span>
+              <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-tertiary)' }}>{sublabel}</span>
+            </a>
+          ))}
+          <form method="POST" action="/api/debug/pipeline" target="_blank" style={{ display: 'contents' }}>
+            <button
+              type="submit"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border-2)',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>Pipeline Run</span>
+              <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-tertiary)' }}>POST /api/debug/pipeline — dry-run smoke test</span>
+            </button>
+          </form>
+          <a
+            href="/api/debug/fail"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              padding: '0.75rem 1rem',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border-2)',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-status-failed)' }}>Force Failure Run</span>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--color-text-tertiary)' }}>GET /api/debug/fail — log.error + Sentry capture</span>
+          </a>
+        </div>
+      </section>
+
+      {/* Section 5: Run Log */}
       <section style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Last 20 Runs (all users)</h2>
         <Suspense fallback={<RunLogSkeleton />}>

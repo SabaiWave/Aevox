@@ -1,32 +1,44 @@
-// In-memory sliding-window rate limiter. MVP approach per api.md.
-// Replace with Upstash/Redis in Phase 5 for multi-instance production.
-
-interface RateLimitEntry {
-  count: number
-  windowStart: number
-}
-
-const store = new Map<string, RateLimitEntry>()
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 
 export interface RateLimitConfig {
-  windowMs: number  // window size in milliseconds
-  max: number       // max requests per window
+  windowMs: number
+  max: number
 }
 
-export function checkRateLimit(key: string, config: RateLimitConfig): { limited: boolean; retryAfterSeconds: number } {
-  const now = Date.now()
-  const entry = store.get(key)
+// One Ratelimit instance per (windowMs, max) combo — lazy cache
+const limiters = new Map<string, Ratelimit>()
 
-  if (!entry || now - entry.windowStart >= config.windowMs) {
-    store.set(key, { count: 1, windowStart: now })
+function getLimiter(config: RateLimitConfig): Ratelimit {
+  const cacheKey = `${config.windowMs}:${config.max}`
+  if (!limiters.has(cacheKey)) {
+    limiters.set(cacheKey, new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(config.max, `${config.windowMs} ms`),
+    }))
+  }
+  return limiters.get(cacheKey)!
+}
+
+export async function checkRateLimit(
+  key: string,
+  config: RateLimitConfig
+): Promise<{ limited: boolean; retryAfterSeconds: number }> {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    // Upstash not configured — allow all (graceful degradation for local dev)
     return { limited: false, retryAfterSeconds: 0 }
   }
 
-  if (entry.count >= config.max) {
-    const retryAfterMs = config.windowMs - (now - entry.windowStart)
-    return { limited: true, retryAfterSeconds: Math.ceil(retryAfterMs / 1000) }
+  try {
+    const limiter = getLimiter(config)
+    const { success, reset } = await limiter.limit(key)
+    if (!success) {
+      const retryAfterMs = reset - Date.now()
+      return { limited: true, retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) }
+    }
+    return { limited: false, retryAfterSeconds: 0 }
+  } catch {
+    // Redis unavailable — fail open to avoid blocking real users
+    return { limited: false, retryAfterSeconds: 0 }
   }
-
-  entry.count++
-  return { limited: false, retryAfterSeconds: 0 }
 }

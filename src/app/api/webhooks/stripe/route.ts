@@ -16,7 +16,7 @@ function tierFromPriceId(priceId: string): Tier {
 export async function POST(req: NextRequest) {
   // ── 0. Rate limit by IP ────────────────────────────────────────────────────
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const { limited, retryAfterSeconds } = checkRateLimit(`stripe-webhook:${ip}`, { windowMs: 60_000, max: 100 })
+  const { limited, retryAfterSeconds } = await checkRateLimit(`stripe-webhook:${ip}`, { windowMs: 60_000, max: 100 })
   if (limited) {
     return Response.json({ error: 'Too many requests' }, {
       status: 429,

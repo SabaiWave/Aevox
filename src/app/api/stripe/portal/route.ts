@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (ip === 'unknown') {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
-  const { limited, retryAfterSeconds } = checkRateLimit(`stripe-portal:${ip}`, {
+  const { limited, retryAfterSeconds } = await checkRateLimit(`stripe-portal:${ip}`, {
     windowMs: 60_000,
     max: 10,
   })

@@ -22,7 +22,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const { limited, retryAfterSeconds } = ip === 'unknown'
     ? { limited: true, retryAfterSeconds: 0 }
-    : checkRateLimit(`contact:${ip}`, { windowMs: 15 * 60 * 1000, max: 5 })
+    : await checkRateLimit(`contact:${ip}`, { windowMs: 15 * 60 * 1000, max: 5 })
 
   if (limited) {
     return Response.json(

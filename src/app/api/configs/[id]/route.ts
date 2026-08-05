@@ -32,7 +32,7 @@ export async function GET(
 ) {
   // ── 0. Rate limit (by IP, pre-auth) ───────────────────────────────────────
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
-  const { limited: getLimited, retryAfterSeconds: getRetry } = checkRateLimit(`configs-read:${ip}`, { windowMs: 60_000, max: 30 })
+  const { limited: getLimited, retryAfterSeconds: getRetry } = await checkRateLimit(`configs-read:${ip}`, { windowMs: 60_000, max: 30 })
   if (getLimited) {
     return Response.json({ error: 'Too many requests' }, {
       status: 429,
@@ -84,7 +84,7 @@ export async function PUT(
 ) {
   // ── 0. Rate limit (by IP, pre-auth) ───────────────────────────────────────
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
-  const { limited: putLimited, retryAfterSeconds: putRetry } = checkRateLimit(`configs-update:${ip}`, { windowMs: 60_000, max: 10 })
+  const { limited: putLimited, retryAfterSeconds: putRetry } = await checkRateLimit(`configs-update:${ip}`, { windowMs: 60_000, max: 10 })
   if (putLimited) {
     return Response.json({ error: 'Too many requests' }, {
       status: 429,

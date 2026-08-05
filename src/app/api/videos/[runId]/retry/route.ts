@@ -1,12 +1,14 @@
+import { waitUntil } from '@vercel/functions'
 import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { runPipeline } from '@/agents/orchestrator'
 import type { PriorResults } from '@/agents/orchestrator'
-import { createRunStore, pushEvent, markRunDone } from '@/lib/pipeline-events'
 import { getValidYouTubeToken } from '@/lib/youtube-token-refresh'
-import type { ChannelConfig, SSEEvent, AgentResult, SourcePackage, VoiceOutput, VideoOutput } from '@/types'
+import type { ChannelConfig, AgentResult, SourcePackage, VoiceOutput, VideoOutput } from '@/types'
+
+export const maxDuration = 300
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -111,30 +113,17 @@ export async function POST(
     .update({ status: 'running', updated_at: new Date().toISOString() })
     .eq('id', runId)
 
-  // ── 8. Create fresh event store ────────────────────────────────────────────
-  createRunStore(runId)
-
-  // ── 9. Resolve YouTube token ───────────────────────────────────────────────
+  // ── 8. Resolve YouTube token ───────────────────────────────────────────────
   const { accessToken: youtubeAccessToken } = await getValidYouTubeToken(user.id)
 
-  // ── 10. Fire pipeline async ────────────────────────────────────────────────
-  runPipeline(
-    runId,
-    run.topic,
-    config,
-    youtubeAccessToken,
-    (event: SSEEvent) => {
-      pushEvent(runId, event)
-      if (event.type === 'pipeline_done' || event.type === 'pipeline_error') {
-        markRunDone(runId)
-      }
-    },
-    {
+  // ── 9. Fire pipeline — waitUntil keeps lambda alive across response ────────
+  waitUntil(
+    runPipeline(runId, run.topic, config, youtubeAccessToken, undefined, {
       isDryRun: run.is_dry_run ?? false,
       userTier: user.tier ?? 'free',
       priorResults,
-    },
-  ).catch(err => console.error('[api/videos/retry] runPipeline threw:', err))
+    }).catch(err => console.error('[api/videos/retry] runPipeline threw:', err))
+  )
 
   return Response.json({ data: { runId } }, { status: 200 })
 }

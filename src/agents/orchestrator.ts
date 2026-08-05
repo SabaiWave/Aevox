@@ -145,6 +145,24 @@ export function buildDegradedContext(
   return { failedStages, gapMessages, availableData }
 }
 
+// ─── Per-stage DB write ───────────────────────────────────────────────────────
+
+async function writeStageResult(
+  runId: string,
+  column: 'research_result' | 'script_result' | 'voice_result' | 'video_result' | 'publish_result',
+  result: AgentResult<unknown>,
+): Promise<void> {
+  try {
+    const supabase = getSupabaseServerClient()
+    await supabase
+      .from('videos')
+      .update({ [column]: result, updated_at: new Date().toISOString() })
+      .eq('id', runId)
+  } catch {
+    // non-fatal — SSE poller falls back to DB state on next tick
+  }
+}
+
 // ─── runPipeline ──────────────────────────────────────────────────────────────
 
 export interface PriorResults {
@@ -225,6 +243,7 @@ export async function runPipeline(
       }
 
       onEvent?.({ type: 'stage_complete', stage: 'research', state: 'complete', data: researchResult, timestamp: new Date().toISOString() })
+      void writeStageResult(runId, 'research_result', researchResult)
     }
 
     // ── Stage 2: Script ────────────────────────────────────────────────────
@@ -272,6 +291,7 @@ export async function runPipeline(
       }
 
       onEvent?.({ type: 'stage_complete', stage: 'script', state: 'complete', data: scriptResult, timestamp: new Date().toISOString() })
+      void writeStageResult(runId, 'script_result', scriptResult)
     }
 
     // ── Stage 3: Voice ─────────────────────────────────────────────────────
@@ -326,6 +346,7 @@ export async function runPipeline(
       } else {
         onEvent?.({ type: 'stage_complete', stage: 'voice', state: 'complete', data: voiceResult, timestamp: new Date().toISOString() })
       }
+      void writeStageResult(runId, 'voice_result', voiceResult)
     }
 
     const audioUrl = voiceResult.status === 'success' && voiceResult.data
@@ -347,6 +368,7 @@ export async function runPipeline(
       } else {
         onEvent?.({ type: 'stage_complete', stage: 'video', state: 'complete', data: videoResult, timestamp: new Date().toISOString() })
       }
+      void writeStageResult(runId, 'video_result', videoResult)
     }
 
     const videoUrl = videoResult.status === 'success' && videoResult.data
@@ -371,6 +393,7 @@ export async function runPipeline(
     } else {
       onEvent?.({ type: 'stage_complete', stage: 'publish', state: 'complete', data: publishResult, timestamp: new Date().toISOString() })
     }
+    void writeStageResult(runId, 'publish_result', publishResult)
 
     // ── Determine final status ─────────────────────────────────────────────
     // 'complete' when research AND script succeeded (voice/publish may be degraded)

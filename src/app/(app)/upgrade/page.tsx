@@ -5,18 +5,18 @@ import { getSupabaseServerClient } from '@/lib/supabase-server'
 import UpgradeButton from './UpgradeButton'
 import ManageSubscriptionButton from './ManageSubscriptionButton'
 
-const starterFeatures = [
+const creatorFeatures = [
   '8 videos per month',
-  'Full research + script + voice pipeline',
+  'Full research, script, voice, and video pipeline',
   'YouTube auto-publish',
-  'AI voice synthesis',
+  'Unlimited channels',
 ]
 
-const proFeatures = [
+const studioFeatures = [
   'Unlimited videos',
-  'Everything in Starter',
+  'Everything in Creator',
   'Priority processing',
-  'Early access to new features',
+  'Early access to new formats',
 ]
 
 function formatCancelDate(date: Date): string {
@@ -158,7 +158,7 @@ export default async function UpgradePage() {
             margin: 0,
           }}
         >
-          Upgrade
+          Your Plan
         </h1>
         {currentTier !== 'free' && <ManageSubscriptionButton />}
       </div>
@@ -169,25 +169,25 @@ export default async function UpgradePage() {
           margin: '0 0 2rem',
         }}
       >
-        Choose a plan to keep creating
+        Manage your plan or change at any time
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1.5rem' }}>
         <PlanCard
-          name="Starter"
+          name="Creator"
           price="$49"
-          features={starterFeatures}
+          features={creatorFeatures}
           plan="starter"
-          label="Get Starter"
+          label="Get Creator"
           isCurrent={currentTier === 'starter'}
           cancelAt={cancelAt}
         />
         <PlanCard
-          name="Pro"
+          name="Studio"
           price="$99"
-          features={proFeatures}
+          features={studioFeatures}
           plan="pro"
-          label="Get Pro"
+          label="Get Studio"
           isCurrent={currentTier === 'pro'}
           cancelAt={cancelAt}
         />

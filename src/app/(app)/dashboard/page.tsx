@@ -42,7 +42,7 @@ export default async function DashboardPage({
   const { data: runs, error: runsError } = userUuid
     ? await supabase
         .from('videos')
-        .select('id, topic, status, config_id, created_at, updated_at, is_dry_run')
+        .select('id, topic, status, config_id, created_at, updated_at, is_dry_run, channel_configs(name)')
         .eq('user_id', userUuid)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -127,7 +127,7 @@ export default async function DashboardPage({
             fontWeight: 500,
           }}
         >
-          You&apos;re now on the {tier} plan —{' '}
+          You&apos;re now on the {tier === 'starter' ? 'Creator' : tier === 'pro' ? 'Studio' : tier} plan —{' '}
           {tier === 'starter' ? '8 videos/month' : tier === 'pro' ? 'unlimited videos' : ''} unlocked.
         </div>
       )}
@@ -239,13 +239,18 @@ export default async function DashboardPage({
         ) : (
           /* Runs list */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {runs.map((run) => (
-              <RunRow
-                key={run.id}
-                run={run}
-                formattedDate={formatDate(run.created_at)}
-              />
-            ))}
+            {runs.map((run) => {
+              const configs = (run as unknown as { channel_configs?: { name: string } | null }).channel_configs
+              const configName = configs?.name ?? null
+              return (
+                <RunRow
+                  key={run.id}
+                  run={run}
+                  formattedDate={formatDate(run.created_at)}
+                  configName={configName}
+                />
+              )
+            })}
           </div>
         )}
       </div>

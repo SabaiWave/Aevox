@@ -55,7 +55,7 @@ export default function ManageSubscriptionButton() {
           if (!loading) (e.currentTarget as HTMLButtonElement).style.opacity = '1'
         }}
       >
-        {loading ? 'Opening…' : 'Manage Subscription'}
+        {loading ? 'Opening…' : 'Manage Plan'}
       </button>
       {error && (
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-status-failed)', margin: 0 }}>

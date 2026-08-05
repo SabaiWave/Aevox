@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
+import { Tooltip } from './ui/Tooltip'
 import type {
   AgentResult,
   PipelineStage,
@@ -42,6 +44,14 @@ function friendlyError(stage: PipelineStage, rawError: string | undefined): stri
   return STAGE_FRIENDLY_ERROR[stage]
 }
 
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
 function ResearchBody({ data }: { data: SourcePackage }) {
   if (!Array.isArray(data.sources)) {
     return <p style={{ color: 'var(--color-text-tertiary)', fontSize: '0.875rem' }}>No source data available</p>
@@ -55,49 +65,49 @@ function ResearchBody({ data }: { data: SourcePackage }) {
           style={{
             paddingBottom: '0.5rem',
             borderBottom: '1px solid var(--color-border-2)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
           }}
         >
-          <a
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--color-accent)',
-              fontSize: '0.8125rem',
-              display: 'block',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              textDecoration: 'none',
-            }}
-          >
-            {source.url}
-          </a>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              marginTop: '0.125rem',
-            }}
-          >
-            <span
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                fontSize: '0.875rem',
                 color: 'var(--color-text-primary)',
-                flex: 1,
-                marginRight: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textDecoration: 'none',
               }}
             >
               {source.title}
+            </a>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-accent)',
+                display: 'block',
+                marginTop: '0.125rem',
+              }}
+            >
+              {extractDomain(source.url)}
             </span>
+          </div>
+          <Tooltip content="Source confidence score" side="left">
             <span
               className="font-mono text-sm"
-              style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}
+              style={{ color: 'var(--color-text-tertiary)', flexShrink: 0, cursor: 'default' }}
             >
               {(source.confidence * 100).toFixed(0)}%
             </span>
-          </div>
+          </Tooltip>
         </div>
       ))}
     </div>
@@ -212,27 +222,36 @@ function VideoBody({ data }: { data: VideoOutput }) {
 }
 
 function PublishBody({ data }: { data: PublishOutput }) {
+  const cleanTitle = data.title.replace(/^\{|\}$/g, '')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
       <a
         href={data.videoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-mono"
         style={{
           color: 'var(--color-accent)',
           fontSize: '0.875rem',
           textDecoration: 'none',
         }}
       >
-        {data.title}
+        {cleanTitle}
       </a>
-      <span
-        className="font-mono text-sm"
-        style={{ color: 'var(--color-text-tertiary)' }}
+      <a
+        href={data.videoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--color-text-tertiary)',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+        }}
       >
-        {data.videoId}
-      </span>
+        View on YouTube <ExternalLink size={12} />
+      </a>
     </div>
   )
 }

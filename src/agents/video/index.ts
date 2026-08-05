@@ -156,9 +156,10 @@ export class VideoAgent {
       // ── Step 1: Split script into beats ──────────────────────────────────
       // VIDEO_BEAT_COUNT env var caps beats for cheap test runs (e.g. VIDEO_BEAT_COUNT=2 = 12s, ~$0.05)
       // Production: derive from target duration so clips match narration length (6s per beat)
-      const derivedBeatCount = Math.max(1, Math.round((config.targetDurationMin * 60) / 6))
+      const MAX_IMAGES_PER_RUN = 30
+      const derivedBeatCount = Math.min(Math.max(1, Math.round((config.targetDurationMin * 60) / 6)), MAX_IMAGES_PER_RUN)
       const beatTarget = process.env.VIDEO_BEAT_COUNT
-        ? Math.max(1, parseInt(process.env.VIDEO_BEAT_COUNT, 10) || derivedBeatCount)
+        ? Math.max(1, Math.min(parseInt(process.env.VIDEO_BEAT_COUNT, 10) || derivedBeatCount, MAX_IMAGES_PER_RUN))
         : derivedBeatCount
       const allBeats = splitScriptIntoBeats(script, beatTarget)
       const beats = allBeats.slice(0, beatTarget)

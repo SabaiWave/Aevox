@@ -28,6 +28,7 @@ function buildSystemPrompt(config: ChannelConfig): string {
     `Target duration: ${config.targetDurationMin} minutes of spoken voiceover (approximately ${config.targetDurationMin * 130} words).`,
     `Write ONLY the voiceover script — no stage directions, no headers, no meta-commentary.`,
     `The script will be read aloud by a voice AI; write for the ear, not the eye.${forbidden}`,
+    `CONTENT POLICY: If the requested topic is sexually explicit, violent beyond storytelling norms, hateful, or completely unrelated to the channel niche, respond with exactly: TOPIC_REJECTED and nothing else.`,
   ].join(' ')
 }
 
@@ -110,6 +111,16 @@ export class ScriptAgent {
           status: 'failed',
           data: null,
           error: 'Script generation returned no content. Please try again.',
+          durationMs: Date.now() - start,
+        }
+      }
+
+      if (block.text.trim() === 'TOPIC_REJECTED') {
+        await log.warn('[ScriptAgent] topic rejected', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start })
+        return {
+          status: 'failed',
+          data: null,
+          error: 'This topic was rejected. It may be inappropriate or unrelated to your channel niche.',
           durationMs: Date.now() - start,
         }
       }

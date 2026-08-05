@@ -6,7 +6,7 @@ import { getSupabaseServerClient } from '@/lib/supabase-server'
 export async function GET(req: NextRequest) {
   // ── 0. Rate limit by IP (first operation) ─────────────────────────────────
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const { limited, retryAfterSeconds } = checkRateLimit(`youtube-initiate:${ip}`, {
+  const { limited, retryAfterSeconds } = await checkRateLimit(`youtube-initiate:${ip}`, {
     windowMs: 60_000,
     max: 5,
   })
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   // ── 0. Rate limit ──────────────────────────────────────────────────────────
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const { limited, retryAfterSeconds } = checkRateLimit(`youtube-disconnect:${ip}`, {
+  const { limited, retryAfterSeconds } = await checkRateLimit(`youtube-disconnect:${ip}`, {
     windowMs: 60_000,
     max: 10,
   })

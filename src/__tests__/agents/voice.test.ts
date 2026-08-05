@@ -200,7 +200,7 @@ describe('VoiceAgent', () => {
 
       expect(result.status).toBe('failed')
       expect(result.data).toBeNull()
-      expect(result.error).toContain('Supabase upload error')
+      expect(result.error).toContain('Failed to save audio file')
     })
   })
 

@@ -1,5 +1,6 @@
 import type { AgentResult, ChannelConfig, ResearchSource, SourcePackage } from '@/types'
 import { dryRunSourcePackage } from '@/__fixtures__/research'
+import { log } from '@/lib/logger'
 
 interface TavilyResult {
   url: string
@@ -19,6 +20,7 @@ export class ResearchAgent {
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     if (isDryRun) {
+      await log.info('[ResearchAgent] complete', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, dryRun: true })
       return {
         status: 'success',
         data: dryRunSourcePackage,
@@ -30,12 +32,14 @@ export class ResearchAgent {
     }
 
     try {
+      await log.info('[ResearchAgent] start', { agent: 'ResearchAgent', configId: _config.id, stage: 'research' })
       const apiKey = process.env.TAVILY_API_KEY
       if (!apiKey) {
+        await log.error('[ResearchAgent] failed', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, error: 'TAVILY_API_KEY is not set' })
         return {
           status: 'failed',
           data: null,
-          error: 'TAVILY_API_KEY is not set',
+          error: 'Research service is not configured. Contact support.',
           durationMs: Date.now() - start,
         }
       }
@@ -54,10 +58,11 @@ export class ResearchAgent {
       })
 
       if (!response.ok) {
+        await log.error('[ResearchAgent] failed', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, error: `Tavily returned ${response.status}` })
         return {
           status: 'failed',
           data: null,
-          error: `Tavily returned ${response.status}`,
+          error: 'Research service returned an error. Please try again.',
           durationMs: Date.now() - start,
         }
       }
@@ -87,6 +92,7 @@ export class ResearchAgent {
         gaps: [],
       }
 
+      await log.info('[ResearchAgent] complete', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start })
       return {
         status: 'success',
         data,
@@ -97,10 +103,11 @@ export class ResearchAgent {
         usage: { searchCount: 1 },
       }
     } catch (err) {
+      await log.error('[ResearchAgent] failed', { agent: 'ResearchAgent', configId: _config.id, stage: 'research', durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) })
       return {
         status: 'failed',
         data: null,
-        error: err instanceof Error ? err.message : String(err),
+        error: 'Research failed unexpectedly. Please try again.',
         durationMs: Date.now() - start,
       }
     }

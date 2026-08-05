@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { AgentResult, ChannelConfig, SourcePackage } from '@/types'
 import { dryRunScript } from '@/__fixtures__/script'
+import { log } from '@/lib/logger'
 
 function sanitizeTopic(raw: string): string {
   // Strip control characters except \n and \t, enforce max 500 chars
@@ -66,6 +67,7 @@ export class ScriptAgent {
     const isDryRun = opts?.dryRun || process.env.DRY_RUN === 'true'
 
     if (isDryRun) {
+      await log.info('[ScriptAgent] complete', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, dryRun: true })
       return {
         status: 'success',
         data: dryRunScript,
@@ -74,12 +76,14 @@ export class ScriptAgent {
     }
 
     try {
+      await log.info('[ScriptAgent] start', { agent: 'ScriptAgent', configId: config.id, stage: 'script' })
       const apiKey = process.env.ANTHROPIC_API_KEY
       if (!apiKey) {
+        await log.error('[ScriptAgent] failed', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, error: 'Script agent is not configured' })
         return {
           status: 'failed',
           data: null,
-          error: 'Script agent is not configured',
+          error: 'Script generation is unavailable. Please contact support.',
           durationMs: Date.now() - start,
         }
       }
@@ -101,14 +105,16 @@ export class ScriptAgent {
 
       const block = message.content.find((b) => b.type === 'text')
       if (!block || block.type !== 'text' || !block.text.trim()) {
+        await log.error('[ScriptAgent] failed', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, error: 'Anthropic returned an empty script' })
         return {
           status: 'failed',
           data: null,
-          error: 'Anthropic returned an empty script',
+          error: 'Script generation returned no content. Please try again.',
           durationMs: Date.now() - start,
         }
       }
 
+      await log.info('[ScriptAgent] complete', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start })
       return {
         status: 'success',
         data: block.text.trim(),
@@ -119,10 +125,11 @@ export class ScriptAgent {
         },
       }
     } catch (err) {
+      await log.error('[ScriptAgent] failed', { agent: 'ScriptAgent', configId: config.id, stage: 'script', durationMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) })
       return {
         status: 'failed',
         data: null,
-        error: err instanceof Error ? err.message : String(err),
+        error: 'Script generation failed unexpectedly. Please try again.',
         durationMs: Date.now() - start,
       }
     }

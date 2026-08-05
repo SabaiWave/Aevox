@@ -27,7 +27,7 @@ const configBodySchema = z.object({
 export async function POST(req: NextRequest) {
   // ── 0. Rate limit (by IP, pre-auth) ───────────────────────────────────────
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
-  const { limited, retryAfterSeconds } = checkRateLimit(`configs-create:${ip}`, { windowMs: 60_000, max: 10 })
+  const { limited, retryAfterSeconds } = await checkRateLimit(`configs-create:${ip}`, { windowMs: 60_000, max: 10 })
   if (limited) {
     return Response.json({ error: 'Too many requests' }, {
       status: 429,

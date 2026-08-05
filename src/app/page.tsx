@@ -1,29 +1,42 @@
 import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
 import AppFooter from '@/components/layout/AppFooter'
 import LandingNav from '@/components/layout/LandingNav'
 import styles from './page.module.css'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { userId } = await auth()
+  const ctaHref = userId ? '/dashboard' : '/sign-up'
   const steps = [
     {
       number: '01',
-      title: 'Research',
-      description: 'Give it a topic. Tavily finds and structures sources from across the web.',
+      title: 'Pick a topic',
+      description:
+        "Type what you want to cover — that's the one creative decision Klipto asks of you. Everything else is automated.",
     },
     {
       number: '02',
-      title: 'Script',
-      description: 'Claude writes a channel-tuned script from the research package.',
+      title: 'Research runs automatically',
+      description:
+        'Klipto combs the web and builds a structured research package: facts, sources, and angles — everything your script needs.',
     },
     {
       number: '03',
-      title: 'Voice',
-      description: 'ElevenLabs synthesizes narration in your channel’s voice as an MP3.',
+      title: 'Script writes itself',
+      description:
+        "A full voiceover script lands in seconds, tuned to your channel's length and style. Edit it or let it run.",
     },
     {
       number: '04',
-      title: 'Publish',
-      description: 'Uploads straight to YouTube with your channel’s metadata defaults.',
+      title: 'Narration and video assemble',
+      description:
+        "AI narration brings the script to life in your channel's voice. Cinematic images compose automatically with smooth motion into an upload-ready video.",
+    },
+    {
+      number: '05',
+      title: 'Live on YouTube',
+      description:
+        'Your video uploads straight to your YouTube channel with your title, description, and tags pre-filled. Done.',
     },
   ]
 
@@ -33,13 +46,13 @@ export default function HomePage() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <p className={styles.eyebrow}>For solo faceless YouTube creators</p>
-          <h1 className={styles.headline}>Topic in. Researched, scripted, voiced, published.</h1>
+          <h1 className={styles.headline}>Your video team, minus the team.</h1>
           <p className={styles.subtext}>
-            Klipto turns a topic into a researched script, narrated MP3, and a published YouTube
-            video in under 30 minutes.
+            Pick a topic. Klipto researches it, writes the script, narrates it, assembles the
+            video, and posts it to your YouTube channel — in under 30 minutes.
           </p>
-          <Link href="/sign-up" className={styles.cta}>
-            Start free
+          <Link href={ctaHref} className={styles.cta}>
+            {userId ? 'Go to dashboard' : 'Start free — no card needed'}
           </Link>
         </section>
 

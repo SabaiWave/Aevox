@@ -8,7 +8,7 @@ import { SidebarAccount } from './SidebarAccount'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/upgrade', label: 'Upgrade', icon: Zap },
+  { href: '/upgrade', label: 'Plan', icon: Zap },
   { href: '/configs', label: 'Channels', icon: Settings },
 ]
 

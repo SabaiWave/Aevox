@@ -68,6 +68,7 @@ export function PipelineStageTracker({ stages }: PipelineStageTrackerProps) {
                   <span
                     className="font-mono text-sm"
                     style={{ color: 'var(--color-text-tertiary)' }}
+                    title="Stage duration"
                   >
                     {formatDuration(info.durationMs)}
                   </span>

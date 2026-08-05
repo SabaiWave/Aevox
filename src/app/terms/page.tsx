@@ -46,7 +46,7 @@ export default function TermsPage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>3. Billing and Subscriptions</h2>
             <p className={styles.sectionBody}>
-              Klipto offers a free tier (2 pipeline runs), a Starter plan ($49/month), and a Pro
+              Klipto offers a free tier (2 pipeline runs), a Creator plan ($49/month), and a Studio
               plan ($99/month). Paid plans are billed monthly in advance. Subscription fees are
               non-refundable except where required by applicable law.
               <br /><br />

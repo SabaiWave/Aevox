@@ -61,6 +61,8 @@ function UsageMeter({ label, used, limit }: MeterProps) {
 
 export function UsageWidget({ charsUsed, charsLimit, videosUsed, videosLimit, tier }: UsageWidgetProps) {
   const isPaid = tier === 'starter' || tier === 'pro'
+  const tierLabel: Record<string, string> = { free: 'Free', starter: 'Creator', pro: 'Studio' }
+  const planName = tierLabel[tier] ?? tier
 
   return (
     <div
@@ -87,7 +89,7 @@ export function UsageWidget({ charsUsed, charsLimit, videosUsed, videosLimit, ti
             color: isPaid ? 'var(--color-primary)' : 'var(--color-text-tertiary)',
           }}
         >
-          {tier} Plan
+          {planName} Plan
         </span>
       </div>
 

@@ -187,6 +187,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Ensure final status is persisted — orchestrator may conflict with the pre-inserted row
+  const finalStatus = result.status === 'complete' ? 'complete' : result.status
+  await supabase
+    .from('videos')
+    .update({ status: finalStatus, updated_at: new Date().toISOString() })
+    .eq('id', runId)
+
   await log.info('[debug/pipeline] Dry-run complete', { runId, status: result.status })
 
   return Response.json({ data: result }, { status: 200 })

@@ -83,8 +83,7 @@ async function uploadToYouTube(
   )
 
   if (!uploadRes.ok) {
-    const errBody = await uploadRes.text()
-    console.error('[PublishAgent] YouTube upload error', { status: uploadRes.status, body: errBody.slice(0, 500) })
+    await uploadRes.text()
     if (uploadRes.status === 401) throw new Error('YouTube authorization expired. Reconnect your YouTube account and try again.')
     if (uploadRes.status === 403) throw new Error('YouTube permission denied. Ensure your account has upload access.')
     throw new Error('YouTube upload failed. Check your YouTube connection and try again.')
@@ -125,7 +124,6 @@ export class PublishAgent {
 
       // Strip control chars first, then validate the actual string used in the header
       const safeToken = oauthToken.replace(/[\x00-\x1F]/g, '')
-      console.log(`[PublishAgent] token length=${safeToken.length}, prefix=${safeToken.slice(0, 8)}...`)
       if (!safeToken || safeToken.trim().length < 10) {
         await log.error('[PublishAgent] failed', { agent: 'PublishAgent', configId: config.id, stage: 'publish', durationMs: Date.now() - start, error: 'Invalid OAuth token' })
         return {

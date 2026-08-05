@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
-import { getRunStore, deleteRunStore } from '@/lib/pipeline-events'
+import type { AgentResult, PipelineStage } from '@/types'
+
+export const maxDuration = 300
+
+const STAGES: PipelineStage[] = ['research', 'script', 'voice', 'video', 'publish']
 
 export async function GET(
   _req: NextRequest,
@@ -61,33 +65,62 @@ export async function GET(
 
   const stream = new ReadableStream({
     async start(controller) {
-      let sentCount = 0
-      const maxWaitMs = 600_000 // 10 min timeout — video gen (FAL + FFmpeg) can take 5-10 min
+      const maxWaitMs = 600_000
       const startMs = Date.now()
 
       const send = (event: object) => {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-        )
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
       }
 
-      while (true) {
-        const runStore = getRunStore(runId)
+      // Track which stages we've already emitted events for
+      const reported = new Set<PipelineStage>()
+      let currentRunning: PipelineStage | null = null
 
-        if (!runStore) {
+      while (true) {
+        const { data: row } = await supabase
+          .from('videos')
+          .select('status, research_result, script_result, voice_result, video_result, publish_result')
+          .eq('id', runId)
+          .single()
+
+        if (!row) {
           send({ type: 'pipeline_error', message: 'Run not found', timestamp: new Date().toISOString() })
           break
         }
 
-        // Send any new events
-        while (sentCount < runStore.events.length) {
-          send(runStore.events[sentCount])
-          sentCount++
+        const results: Record<PipelineStage, AgentResult<unknown> | null> = {
+          research: row.research_result as AgentResult<unknown> | null,
+          script: row.script_result as AgentResult<unknown> | null,
+          voice: row.voice_result as AgentResult<unknown> | null,
+          video: row.video_result as AgentResult<unknown> | null,
+          publish: row.publish_result as AgentResult<unknown> | null,
         }
 
-        if (runStore.done) {
-          deleteRunStore(runId)
+        // Emit complete/failed for any newly finished stages
+        for (const stage of STAGES) {
+          if (reported.has(stage)) continue
+          const result = results[stage]
+          if (!result) continue
+
+          reported.add(stage)
+          if (result.status === 'failed' || result.status === 'degraded') {
+            send({ type: 'stage_failed', stage, state: 'failed', message: result.error, timestamp: new Date().toISOString() })
+          } else {
+            send({ type: 'stage_complete', stage, state: 'complete', data: result, timestamp: new Date().toISOString() })
+          }
+        }
+
+        // Check for terminal status
+        if (row.status !== 'running') {
+          send({ type: 'pipeline_done', status: row.status, timestamp: new Date().toISOString() })
           break
+        }
+
+        // Infer which stage is currently running (first with no result yet)
+        const inferredRunning = STAGES.find(s => !results[s]) ?? null
+        if (inferredRunning && inferredRunning !== currentRunning) {
+          send({ type: 'stage_start', stage: inferredRunning, state: 'running', timestamp: new Date().toISOString() })
+          currentRunning = inferredRunning
         }
 
         if (Date.now() - startMs > maxWaitMs) {
@@ -95,8 +128,7 @@ export async function GET(
           break
         }
 
-        // Poll every 250ms
-        await new Promise(r => setTimeout(r, 250))
+        await new Promise(r => setTimeout(r, 500))
       }
 
       controller.close()
@@ -111,3 +143,4 @@ export async function GET(
     },
   })
 }
+

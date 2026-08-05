@@ -145,7 +145,7 @@ export function PipelineRunView({ runId, initialRun, configName }: PipelineRunVi
         setStages(prev =>
           prev.map(s =>
             s.stage === targetStage
-              ? { ...s, state: 'complete' as StageState, durationMs: undefined }
+              ? { ...s, state: 'complete' as StageState, durationMs: (event.data as AgentResult<unknown>)?.durationMs }
               : s,
           ),
         )

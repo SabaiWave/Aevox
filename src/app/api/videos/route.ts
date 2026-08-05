@@ -1,14 +1,16 @@
+import { waitUntil } from '@vercel/functions'
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { isAdmin } from '@/lib/is-admin'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { runPipeline } from '@/agents/orchestrator'
-import { createRunStore, pushEvent, markRunDone } from '@/lib/pipeline-events'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { checkVoiceQuota } from '@/lib/quota'
 import { getValidYouTubeToken } from '@/lib/youtube-token-refresh'
-import type { ChannelConfig, SSEEvent } from '@/types'
+import type { ChannelConfig } from '@/types'
+
+export const maxDuration = 300
 
 const schema = z.object({
   configId: z.string().uuid(),
@@ -159,19 +161,14 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Failed to create video' }, { status: 500 })
   }
 
-  // ── 7. Create event store ──────────────────────────────────────────────────
-  createRunStore(runId)
-
-  // ── 8. Resolve YouTube token (best-effort — pipeline degrades if not connected) ──
+  // ── 7. Resolve YouTube token (best-effort — pipeline degrades if not connected) ──
   const { accessToken: youtubeAccessToken } = await getValidYouTubeToken(userUuid)
 
-  // ── 9. Fire pipeline async — do NOT await ─────────────────────────────────
-  runPipeline(runId, topic, config, youtubeAccessToken, (event: SSEEvent) => {
-    pushEvent(runId, event)
-    if (event.type === 'pipeline_done' || event.type === 'pipeline_error') {
-      markRunDone(runId)
-    }
-  }, { isDryRun: dryRun, userTier: tier }).catch(err => console.error('[api/videos] runPipeline threw:', err))
+  // ── 8. Fire pipeline — waitUntil keeps lambda alive across response ────────
+  waitUntil(
+    runPipeline(runId, topic, config, youtubeAccessToken, undefined, { isDryRun: dryRun, userTier: tier })
+      .catch(err => console.error('[api/videos] runPipeline threw:', err))
+  )
 
   // ── 10. Return runId immediately ───────────────────────────────────────────
   return Response.json({ data: { runId } }, { status: 200 })
